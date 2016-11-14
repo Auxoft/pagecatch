@@ -1,0 +1,38 @@
+{
+  "name": "pagecatch",
+  "version": "0.0.1",
+  "description": "Chrome extension library for saving current webpage state into one html file including all resources",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Auxoft/pagecatch.git"
+  },
+  "keywords": [
+    "page",
+    "save",
+    "html"
+  ],
+  "author": "Auxoft LLC <leonid@auxoft.com> (https://github.com/Auxoft/pagecatch)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Auxoft/pagecatch/issues"
+  },
+  "homepage": "https://github.com/Auxoft/pagecatch#readme",
+  "devDependencies": {
+    "coffee-loader": "^0.7.2",
+    "coffee-script": "^1.11.1",
+    "coffeelint": "^1.16.0",
+    "coffeelint-loader": "^0.1.1",
+    "file-saver": "^1.3.3",
+    "gulp": "^3.9.1",
+    "webpack": "^1.13.3",
+    "webpack-stream": "^3.2.0"
+  },
+"scripts": {
+    "build-extension": "./node_modules/.bin/gulp build-extensions",
+    "build-lib": "./node_modules/.bin/gulp build-page-catch-min"
+  }
+}
