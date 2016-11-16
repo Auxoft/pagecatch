@@ -13,9 +13,9 @@ META_ATTRIBS_FOR_DEL = [
 class TreeElementNotFound extends Error
 
 
-#get array with information of every frame
+# get array with information of every frame
 getSource = () ->
-  
+
   ###!
   # get frame index in page
   # @return {String} - frame index
@@ -69,24 +69,24 @@ getSource = () ->
           result.unshift(index)
           _getPositionOfFrame(parent)
       _getPositionOfFrame(obj)
-      console.log result
+      #console.log result
       return JSON.stringify(result)
 
     frames = DOM.getElementsByTagName 'iframe'
-    console.log frames.length
+    #console.log frames.length
     for iframe in frames
       i = 0
       while i<window.frames.length
         if iframe.contentWindow == window.frames[i]
-          console.log getFrameId(iframe, DOM)
+          #console.log getFrameId(iframe, DOM)
           dictionary[getFrameId(iframe, DOM)] = i
           result = []
           break
         i++
     return dictionary
-    
+
   ###!
-  #get page doctype with all atributes'
+  # get page doctype with all atributes'
   # @param {DocumentType} doctype - document doctype object
   # @return {array} - array with attributes of doctype page
   # @return null - if doctype is absent
@@ -98,7 +98,7 @@ getSource = () ->
     return null
 
   ###!
-  #get attributes of tag <html ...>...</html>
+  # get attributes of tag <html ...>...</html>
   # @param {array} array - array with html attributes
   # @return {array} - array with attributes of tag <html>
   # @example ["lang","en","class","is-copy-enable"]
@@ -121,7 +121,7 @@ getSource = () ->
   ]
 
 ###!
-#convert html text of every frame to DOM-Tree
+# convert html text of every frame to DOM-Tree
 # @param {string} htmlText - string with html code
 # @return {HTMLDocument} - created DOM with string
 ###
@@ -146,7 +146,7 @@ getDocument = (htmlText) ->
   return _html
 
 ###!
-#get frame position on background script
+# get frame position on background script
 # @param {HTMLIframeElement} - iframe that we want find position,
 # @param {HTMLDocument} - DOM that are parent of this iframe,
 # @return {String} - string with iframe position
@@ -167,7 +167,7 @@ getFramePosition = (obj, DOM) ->
   return JSON.stringify(result)
 
 ###!
-#delete iframe security policy
+# delete iframe security policy
 # @param {HTMLDocument} - DOM object
 ###
 deleteMeta = (document) ->
@@ -177,7 +177,7 @@ deleteMeta = (document) ->
       element.parentElement?.removeChild(element)
 
 ###!
-#delete iframe security policy
+# delete iframe security policy
 # @param {HTMLDocument} - DOM object
 ###
 deleteSendBoxAttrib = (document) ->
@@ -186,7 +186,7 @@ deleteSendBoxAttrib = (document) ->
     iframe.removeAttribute('sendbox')
 
 ###!
-#add tag meta, that this page is saved by PageCatch
+# add tag meta, that this page is saved by PageCatch
 # @param {HTMLDocument} - DOM of current document,
 # @param {String} - string with url of current iframe,
 ###
@@ -211,7 +211,7 @@ defaultCleanUp = (document,url) ->
   addMeta(document,url)
 
 ###!
-#take html attributes for save
+# take html attributes for save
 # @param {array} array - array with attributes of tag <html>...</html>,
 # @param {DocumentElement} status - Doctype of document,
 # @return {String} - string with html code with all atributes + doctype
@@ -232,7 +232,7 @@ getAttribute = (array, status) ->
   return src += ">"
 
 ###!
-#take doctype with attributes for save
+# take doctype with attributes for save
 # @param {array} array - array with attributes of doctype,
 # @return {String} - string with doctype of page
 # @example "<!DOCTYPE html>"
@@ -250,10 +250,11 @@ getDoctype = (array) ->
   return src + ">"
 
 ###!
-#save page
+# save page
 # @param {Number} tabID - number of tab which you want to save,
 # @param {Function} cleanUp - function with clean any attributes from page,
-# @param {Function} done - function in which will be return html text of saved page
+# @param {Function} done - function in which will be return html text of
+#                          saved page
 # @example "<! DOCTYPE html> <html lang="en" class="is-absent"><head>...</html>"
 ###
 getPage = (tabID, cleanUp, done) ->
@@ -316,7 +317,8 @@ getPage = (tabID, cleanUp, done) ->
             xhrToBase64 href, tag, (error, tag, result) ->
               tagCounter--
               if error?
-                console.error "(href) xhrToBase64 error (href=#{href}):", error.stack
+                console.error "(href) xhrToBase64 error (href=#{href}):", \
+                  error.stack
               else
                 tag.setAttribute "href", result
               callback tagCounter, attributeCounter
@@ -380,7 +382,7 @@ getPage = (tabID, cleanUp, done) ->
       flag = false
 
 
-  #START
+  # START
   chrome.tabs.executeScript tabID,
     code: "(" + getSource.toString() + ")()" # transform function to the
                                              # string and wrap it into the

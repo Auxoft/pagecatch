@@ -6,7 +6,7 @@ module.exports = (src, dom, source, callback) ->
   if(src.indexOf("url(") < 0)
     callback null, dom, src
   else
-    #console.log "HALLOW", src, dom
+    #console.log "inline-css:", src, dom
     urlMas = []
     elemMas = []
     convMas = []
@@ -26,7 +26,7 @@ module.exports = (src, dom, source, callback) ->
       convertToBase64 urlMas[i], dom, (error, obj, result, url) ->
         counter--
         if error?
-          console.log "Error base64:", error.stack
+          console.error "Error base64:", error.stack
         else
           convMas.push([url, result])
 

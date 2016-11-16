@@ -1,21 +1,25 @@
 {
   "manifest_version": 2,
 
-  "name": "Getting started example",
-  "description": "This extension shows a Google Image search result for the current page",
-  "version": "1.0",
+  "name": "PageCatch",
+  "description": "Chrome extension for saving current webpage into one HTML file including all resources",
+  "version": "0.1.0",
 
   "background": {
-  				"persistent": false,
-          "scripts": ["background.js"]
-  				},
+    "persistent": false,
+    "scripts": ["background.js"]
+  },
 
   "browser_action": {
     "default_icon": "img/icon.png",
-    "default_title": "Click here!"
+    "default_title": "Click here to save current page!"
   },
 
   "permissions": [
-    "tabs", "http://*/", "https://*/","file://*","activeTab"
+    "tabs",
+    "http://*/",
+    "https://*/",
+    "file://*",
+    "activeTab"
   ]
 }

@@ -1,9 +1,8 @@
-module.exports = (source) ->
-
+module.exports = (url) ->
   try
-    #console.log "Url: #{source}"
+    #console.log "xhr: Url ='#{url}'"
     xhr = new XMLHttpRequest()
-    xhr.open 'GET', source, false
+    xhr.open 'GET', url, false
     xhr.send()
     if xhr.status ==200
       return xhr.responseText

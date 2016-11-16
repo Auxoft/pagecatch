@@ -15,8 +15,8 @@
     "save",
     "html"
   ],
-  "author": "Auxoft LLC <leonid@auxoft.com> (https://github.com/Auxoft/pagecatch)",
-  "license": "ISC",
+  "author": "Auxoft LLC's team and all contributors <leonid@auxoft.com> (https://github.com/Auxoft/pagecatch)",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Auxoft/pagecatch/issues"
   },
