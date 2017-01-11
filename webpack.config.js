@@ -94,7 +94,9 @@ module.exports =
         ],
         output:
         {
-            filename: "page-catch.min.js"
+            filename: "page-catch.min.js",
+            library: "page-catch",
+            libraryTarget: "umd"
         }
 
     },
