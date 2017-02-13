@@ -16,6 +16,7 @@
   },
 
   "permissions": [
+    "management",
     "tabs",
     "http://*/",
     "https://*/",

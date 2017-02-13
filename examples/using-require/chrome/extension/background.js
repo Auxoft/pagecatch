@@ -44,12 +44,16 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var ONEVENT_ATTRIBS, cleanUp, clearOnEventAttribs, clearValueAttrib, deleteScripts, fileSaver, pageCatch, save,
+	var META_ATTRIBS_FOR_DEL, ONEVENT_ATTRIBS, cleanUp, clearOnEventAttribs, clearValueAttrib, deleteAxtAttribs, deleteAxtElements, deleteMeta, deleteScripts, deleteSendBoxAttrib, fileSaver, id, pageCatch, replaceAxtAttribs, save,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 	
 	fileSaver = __webpack_require__(1);
 	
 	pageCatch = __webpack_require__(4);
+	
+	id = 0;
+	
+	META_ATTRIBS_FOR_DEL = ['Content-Security-Policy', 'refresh'];
 	
 	ONEVENT_ATTRIBS = ['onload', 'onclick', 'onkeyup', 'onkeydown', 'onenter', 'onmouseenter', 'onmouseleave', 'onkeypress'];
 	
@@ -61,6 +65,97 @@
 	    script.parentElement.removeChild(script);
 	  }
 	  return document;
+	};
+	
+	deleteAxtElements = function(document) {
+	  var axtElements;
+	  axtElements = document.querySelectorAll('.axt-element');
+	  console.log("axtElements =", axtElements);
+	  return axtElements.forEach(function(element) {
+	    var ref;
+	    return (ref = element.parentElement) != null ? ref.removeChild(element) : void 0;
+	  });
+	};
+	
+	deleteMeta = function(document) {
+	  var metaElements;
+	  metaElements = document.querySelectorAll('meta[http-equiv]');
+	  return metaElements.forEach(function(element) {
+	    var ref, ref1;
+	    if (ref = element.getAttribute('http-equiv'), indexOf.call(META_ATTRIBS_FOR_DEL, ref) >= 0) {
+	      return (ref1 = element.parentElement) != null ? ref1.removeChild(element) : void 0;
+	    }
+	  });
+	};
+	
+	deleteSendBoxAttrib = function(document) {
+	  var iframes;
+	  iframes = document.querySelectorAll('iframe[sendbox]');
+	  return iframes.forEach(function(iframe) {
+	    return iframe.removeAttribute('sendbox');
+	  });
+	};
+	
+	deleteAxtAttribs = function(document) {
+	  var axtAttrElements, body;
+	  body = document.getElementsByTagName('body')[0];
+	  body.removeAttribute('axt-keyreel-extension-installed');
+	  body.removeAttribute('axt-parser-timing');
+	  axtAttrElements = document.querySelectorAll('[axt-visible]');
+	  return axtAttrElements.forEach(function(element) {
+	    return element.removeAttribute('axt-visible');
+	  });
+	};
+	
+	replaceAxtAttribs = function(document) {
+	  var _processForm, body;
+	  _processForm = function(form) {
+	    var form_type;
+	    if (form.hasAttribute('axt-expected-form-type')) {
+	      form_type = form.getAttribute('axt-expected-form-type');
+	    } else {
+	      form_type = form.getAttribute('axt-form-type');
+	    }
+	    form.removeAttribute('axt-form-type');
+	    if (form_type) {
+	      form.setAttribute('axt-expected-form-type', form_type);
+	    } else {
+	      form.removeAttribute('axt-expected-form-type');
+	    }
+	    form.querySelectorAll('[axt-input-type],[axt-expected-input-type]').forEach(function(input) {
+	      var input_type;
+	      if (input.hasAttribute('axt-expected-input-type')) {
+	        input_type = input.getAttribute('axt-expected-input-type');
+	      } else {
+	        input_type = input.getAttribute('axt-input-type');
+	      }
+	      input.removeAttribute('axt-input-type');
+	      if (input_type) {
+	        return input.setAttribute('axt-expected-input-type', input_type);
+	      } else {
+	        return input.removeAttribute('axt-expected-input-type');
+	      }
+	    });
+	    return form.querySelectorAll('[axt-button-type],[axt-expected-button-type]').forEach(function(button) {
+	      var button_type;
+	      if (button.hasAttribute('axt-expected-button-type')) {
+	        button_type = button.getAttribute('axt-expected-button-type');
+	      } else {
+	        button_type = button.getAttribute('axt-button-type');
+	      }
+	      button.removeAttribute('axt-button-type');
+	      if (button_type) {
+	        return button.setAttribute('axt-expected-button-type', button_type);
+	      } else {
+	        return button.removeAttribute('axt-expected-button-type');
+	      }
+	    });
+	  };
+	  body = document.getElementsByTagName('body')[0];
+	  body.querySelectorAll('[axt-form-type],[axt-expected-form-type').forEach(_processForm);
+	  if (body.getAttribute('axt-form-type') != null) {
+	    return _processForm(body);
+	  }
 	};
 	
 	clearValueAttrib = function(document) {
@@ -94,7 +189,12 @@
 	
 	cleanUp = function(document, url) {
 	  deleteScripts(document);
+	  deleteMeta(document);
 	  clearOnEventAttribs(document);
+	  deleteSendBoxAttrib(document);
+	  deleteAxtElements(document);
+	  deleteAxtAttribs(document);
+	  replaceAxtAttribs(document);
 	  return clearValueAttrib(document);
 	};
 	
@@ -103,15 +203,42 @@
 	  file = new File([htmlText], "index.html", {
 	    type: "text/html;charset=utf-8"
 	  });
-	  return saveAs(file);
+	  return fileSaver.saveAs(file);
 	};
+	
+	chrome.management.getAll(function(extensionsArray) {
+	  var extension, i, len;
+	  for (i = 0, len = extensionsArray.length; i < len; i++) {
+	    extension = extensionsArray[i];
+	    if (extension.name === 'KeyReel form checker' && extension.enabled) {
+	      id = extension.id;
+	      return;
+	    }
+	  }
+	});
+	
+	chrome.runtime.onMessageExternal.addListener(function(request, sender, sendResponse) {
+	  console.log('request', request);
+	  console.log('sender:', sender);
+	  console.log('sendResponse', sendResponse);
+	  console.log(id);
+	  if (sender.id === id) {
+	    return chrome.tabs.query({
+	      active: true,
+	      currentWindow: true
+	    }, function(tabArray) {
+	      console.log(pageCatch);
+	      return pageCatch(tabArray[0].id, cleanUp, save);
+	    });
+	  }
+	});
 	
 	chrome.browserAction.onClicked.addListener(function() {
 	  return chrome.tabs.query({
 	    active: true,
 	    currentWindow: true
 	  }, function(tabArray) {
-	    return getPage(tabArray[0].id, cleanUp, save);
+	    return pageCatch(tabArray[0].id, cleanUp, save);
 	  });
 	});
 
@@ -880,83 +1007,51 @@
 /* 6 */
 /***/ function(module, exports) {
 
-	var getEnd, takeMain, takeUrl;
-	
-	takeMain = function(main, counter, flag) {
-	  var i, url;
-	  if (flag === true) {
-	    url = document.createElement('a');
-	    url.href = main;
-	    return url.protocol + "//" + url.hostname;
-	  }
-	  i = main.length;
-	  while (main[i] !== "/") {
-	    i--;
-	  }
-	  main = main.substr(0, i);
-	  i = main.length;
-	  while (counter !== 0) {
-	    if (main[i] === "/") {
-	      counter--;
-	    }
-	    i--;
-	  }
-	  main = main.substr(0, i + 1);
-	  return main;
-	};
-	
-	takeUrl = function(url) {
-	  var counter, i;
-	  i = 0;
-	  counter = 0;
-	  while (url.indexOf("..", i) !== -1 && url.indexOf("./", i) !== -1) {
-	    if (url.indexOf("..", i) === -1) {
-	      i = url.indexOf("./", i) + 2;
-	    } else {
-	      counter++;
-	      i = url.indexOf("..", i) + 3;
-	    }
-	  }
-	  if (counter === 0 && url[0] === "/") {
-	    url = url.substr(1);
-	    return [url, counter, true];
-	  }
-	  if (i !== 0) {
-	    url = url.substr(i);
-	  }
-	  return [url, counter, false];
-	};
-	
-	getEnd = function(main) {
-	  var i, result;
-	  i = main.length - 1;
-	  result = "";
-	  while (main[i] !== "/") {
-	    result = main[i] + result;
-	    i--;
-	  }
-	  return result;
-	};
+	var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 	
 	module.exports = function(url, main) {
-	  var URI;
+	  var flag, i, indexURL, indexURLS, len, mainURLS;
+	  flag = false;
 	  url = url.replace(/\s/g, '');
+	  console.warn("URL: ", url);
+	  console.warn("MAIN: ", main);
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
 	    url = url.substr(1, url.length - 2);
 	  }
 	  if (url[0] === "/" && url[1] === "/") {
 	    return "https:" + url;
 	  }
+	  if (url[0] === '/' && url[1] !== '/') {
+	    flag = true;
+	    mainURLS = main.split('/');
+	    console.log(mainURLS);
+	    mainURLS = mainURLS.slice(0, 3);
+	    main = mainURLS.join('/');
+	  }
 	  if (url.match(/^[\w\-_\d]+:/)) {
 	    return url;
 	  }
-	  URI = takeUrl(url);
-	  url = URI[0];
-	  if (URI[2] === true) {
-	    return takeMain(main, URI[1], URI[2]) + "/" + url;
-	  } else {
-	    return takeMain(main, URI[1], URI[2]) + "/" + url;
+	  mainURLS = main.split('/');
+	  console.log(main);
+	  console.log(mainURLS);
+	  console.log(mainURLS[mainURLS.length - 1].indexOf('.'));
+	  if (indexOf.call(mainURLS[mainURLS.length - 1], '.') >= 0 && !flag) {
+	    mainURLS.pop();
+	    console.log(mainURLS);
 	  }
+	  indexURLS = url.split('/');
+	  console.log(mainURLS);
+	  console.log(indexURLS);
+	  for (i = 0, len = indexURLS.length; i < len; i++) {
+	    indexURL = indexURLS[i];
+	    if (indexURL === '..') {
+	      mainURLS.pop();
+	    } else {
+	      mainURLS.push(indexURL);
+	    }
+	  }
+	  console.log(mainURLS.join('/'));
+	  return mainURLS.join('/');
 	};
 
 
