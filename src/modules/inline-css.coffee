@@ -2,7 +2,8 @@ convertURL = require '../modules/get-relative-link.coffee'
 convertToBase64 = require '../modules/xhr-to-base64.coffee'
 
 
-module.exports = (src, dom, source, callback) ->
+module.exports = (src, dom, source, actualUrls, callback) ->
+  flag = false
   if(src.indexOf("url(") < 0)
     callback null, dom, src
   else
@@ -10,38 +11,48 @@ module.exports = (src, dom, source, callback) ->
     urlMas = []
     elemMas = []
     convMas = []
-    i = 0
-    while i < src.length
-      k = src.indexOf "url(", i
-      if k!= -1
-        elemMas.push src.substring(i, k+4)
-        j = src.indexOf ")", k+1
-        urlMas.push convertURL(src.substring(k+4, j), source)
-        i = j
-      else
-        elemMas.push src.substring(i, src.length)
-        break
-    counter = urlMas.length
+    lastIndex = 0
+    regExp = /(.*?url\()\s*(['"]?)(.*?)\2\s*(\))/gi
+    while (obj = regExp.exec(src))?
+      elemMas.push obj[1], obj[4]
+      urlMas.push convertURL obj[3], source
+      lastIndex = regExp.lastIndex
+    elemMas.push src[lastIndex..]
+    #console.log "MASIVE", elemMas
+    counter = 0
     for i in [0...urlMas.length]
-      convertToBase64 urlMas[i], dom, (error, obj, result, url) ->
-        counter--
-        if error?
-          console.error "Error base64:", error.stack
-        else
-          convMas.push([url, result])
+      if actualUrls[urlMas[i]]
+        flag = true
+        actualUrls[urlMas[i]]
+        counter++
+        console.log 'COUNTER++',counter
+        convertToBase64 urlMas[i], dom, (error, obj, result, url) ->
+          counter--
+          console.log counter
+          if error?
+            console.error "Error base64:", error.stack
+          else
+            actualUrls[url] = result
+          if counter == 0
+            console.log actualUrls
+            src = []
+            index = 0
+            urlIndex = 0
+            while index < elemMas.length
+              src.push elemMas[index]
+              index++
+              if urlMas[urlIndex]?
+                if actualUrls[urlMas[urlIndex]]
+                  console.log 'URL', actualUrls[urlMas[urlIndex]]
+                  src.push '"'+actualUrls[urlMas[urlIndex]]+'"'
+                else
+                  src.push ""
+              if(elemMas[index]?)
+                console.log "SECOND_ELEM", elemMas[index]
+                src.push(elemMas[index])
+              index++
+              urlIndex++
+            callback null, dom, src.join("")
+    if !flag
+      callback null, dom, elemMas.join('')
 
-        if counter == 0
-          src = ""
-          i = 0
-          for elem in elemMas
-            src += elem
-            if urlMas[i]?
-              j = -1
-              for conv, index in convMas
-                if conv[0] == urlMas[i]
-                  j = index
-                  break
-              if j >= 0
-                src += convMas[j][1]
-              i++
-          callback null, dom, src

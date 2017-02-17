@@ -22,7 +22,7 @@ xhrToBase64 = (url, elem, callback) ->
       console.error "XHR Error " + \
         e.target.status + \
         " occurred while receiving the document."
-      callback e, elem, url,url
+      callback e, elem, " ",url
 
     xhr.send()
 

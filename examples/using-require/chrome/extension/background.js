@@ -483,13 +483,47 @@
 	})(Error);
 	
 	getSource = function() {
+	  var getAttribute, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj;
+	  linksObj = {};
+	  getUrlMas = function(elem) {
+	    var child, children, endIndex, j, k, key, len, len1, obj, results, startIndex;
+	    children = elem.children;
+	    for (j = 0, len = children.length; j < len; j++) {
+	      child = children[j];
+	      getUrlMas(child);
+	    }
+	    obj = window.getComputedStyle(elem);
+	    console.log(elem);
+	    results = [];
+	    for (k = 0, len1 = obj.length; k < len1; k++) {
+	      elem = obj[k];
+	      startIndex = obj[elem].indexOf('url(');
+	      results.push((function() {
+	        var results1;
+	        results1 = [];
+	        while (startIndex > -1) {
+	          endIndex = obj[elem].indexOf(')', startIndex + 1);
+	          key = obj[elem].substring(startIndex + 4, endIndex);
+	          if (key.startsWith('"') || key.startsWith("'")) {
+	            key = key.substring(1, key.length - 1);
+	          }
+	          linksObj[key] = true;
+	          console.assert(linksObj[key]);
+	          console.log('ELEM', key);
+	          results1.push(startIndex = obj[elem].indexOf('url(', endIndex + 1));
+	        }
+	        return results1;
+	      })());
+	    }
+	    return results;
+	  };
+	  getUrlMas(document.body);
 	
 	  /*!
 	   * get frame index in page
 	   * @return {String} - frame index
 	   * @example 0:3:5
 	   */
-	  var getAttribute, getDoctype, getElementPath, getFramePath;
 	  getFramePath = function() {
 	    var _get_frame_id, fid;
 	    fid = [];
@@ -599,7 +633,7 @@
 	    }
 	    return mas;
 	  };
-	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype)];
+	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj];
 	};
 	
 	
@@ -808,7 +842,7 @@
 	      for (k = 0, len1 = tagsStyles.length; k < len1; k++) {
 	        tag = tagsStyles[k];
 	        attributeCounter++;
-	        inlineCSS(tag.getAttribute('style'), tag, dom.url, function(error, tag, result) {
+	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom.actualUrls, function(error, tag, result) {
 	          attributeCounter--;
 	          if (error != null) {
 	            console.error("Style attr error", error);
@@ -836,12 +870,13 @@
 	        } else if (tag.hasAttribute('href')) {
 	          if (tag.getAttribute('rel') === "stylesheet") {
 	            href = convertURL(tag.getAttribute('href'), dom.url);
-	            inlineCSS(getXHR(href), tag, href, function(error, tag, result) {
+	            inlineCSS(getXHR(href), tag, href, dom.actualUrls, function(error, tag, result) {
 	              var parent, style;
 	              if (error != null) {
 	                console.error("style error", error);
 	              } else {
 	                tagCounter--;
+	                console.log('INLINECSSS_END', tag);
 	                style = document.createElement('style');
 	                style.innerHTML = result;
 	                parent = tag.parentElement;
@@ -863,7 +898,7 @@
 	            });
 	          }
 	        } else {
-	          inlineCSS(tag.innerHTML, tag, dom.url, function(error, tag, result) {
+	          inlineCSS(tag.innerHTML, tag, dom.url, dom.actualUrls, function(error, tag, result) {
 	            tagCounter--;
 	            if (error != null) {
 	              console.error("(style)inlineCSS error:", error.stack);
@@ -954,7 +989,8 @@
 	        header: dom[2],
 	        document: getDocument(dom[1]),
 	        framesIdx: dom[4],
-	        doctype: dom[5]
+	        doctype: dom[5],
+	        actualUrls: dom[6]
 	      };
 	      dictionary[dom[3]] = obj;
 	    }
@@ -994,7 +1030,7 @@
 	    };
 	    xhr.onerror = function(e) {
 	      console.error("XHR Error " + e.target.status + " occurred while receiving the document.");
-	      return callback(e, elem, url, url);
+	      return callback(e, elem, " ", url);
 	    };
 	    return xhr.send();
 	  }
@@ -1013,35 +1049,30 @@
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
 	  flag = false;
 	  url = url.replace(/\s/g, '');
-	  console.warn("URL: ", url);
-	  console.warn("MAIN: ", main);
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
 	    url = url.substr(1, url.length - 2);
 	  }
-	  if (url[0] === "/" && url[1] === "/") {
-	    return "https:" + url;
+	  if (url.startsWith('data:')) {
+	    return url;
 	  }
-	  if (url[0] === '/' && url[1] !== '/') {
-	    flag = true;
-	    mainURLS = main.split('/');
-	    console.log(mainURLS);
-	    mainURLS = mainURLS.slice(0, 3);
-	    main = mainURLS.join('/');
+	  if (url.startsWith('//')) {
+	    return "https:" + url;
 	  }
 	  if (url.match(/^[\w\-_\d]+:/)) {
 	    return url;
 	  }
+	  if (url[0] === '/' && url[1] !== '/') {
+	    flag = true;
+	    mainURLS = main.split('/');
+	    mainURLS = mainURLS.slice(0, 3);
+	    main = mainURLS.join('/');
+	    return main + url;
+	  }
 	  mainURLS = main.split('/');
-	  console.log(main);
-	  console.log(mainURLS);
-	  console.log(mainURLS[mainURLS.length - 1].indexOf('.'));
 	  if (indexOf.call(mainURLS[mainURLS.length - 1], '.') >= 0 && !flag) {
 	    mainURLS.pop();
-	    console.log(mainURLS);
 	  }
 	  indexURLS = url.split('/');
-	  console.log(mainURLS);
-	  console.log(indexURLS);
 	  for (i = 0, len = indexURLS.length; i < len; i++) {
 	    indexURL = indexURLS[i];
 	    if (indexURL === '..') {
@@ -1050,7 +1081,6 @@
 	      mainURLS.push(indexURL);
 	    }
 	  }
-	  console.log(mainURLS.join('/'));
 	  return mainURLS.join('/');
 	};
 
@@ -1088,64 +1118,70 @@
 	
 	convertToBase64 = __webpack_require__(5);
 	
-	module.exports = function(src, dom, source, callback) {
-	  var convMas, counter, elemMas, i, j, k, l, ref, results, urlMas;
+	module.exports = function(src, dom, source, actualUrls, callback) {
+	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, ref, regExp, urlMas;
+	  flag = false;
 	  if (src.indexOf("url(") < 0) {
 	    return callback(null, dom, src);
 	  } else {
 	    urlMas = [];
 	    elemMas = [];
 	    convMas = [];
-	    i = 0;
-	    while (i < src.length) {
-	      k = src.indexOf("url(", i);
-	      if (k !== -1) {
-	        elemMas.push(src.substring(i, k + 4));
-	        j = src.indexOf(")", k + 1);
-	        urlMas.push(convertURL(src.substring(k + 4, j), source));
-	        i = j;
-	      } else {
-	        elemMas.push(src.substring(i, src.length));
-	        break;
-	      }
+	    lastIndex = 0;
+	    regExp = /(.*?url\()\s*(['"]?)(.*?)\2\s*(\))/gi;
+	    while ((obj = regExp.exec(src)) != null) {
+	      elemMas.push(obj[1], obj[4]);
+	      urlMas.push(convertURL(obj[3], source));
+	      lastIndex = regExp.lastIndex;
 	    }
-	    counter = urlMas.length;
-	    results = [];
-	    for (i = l = 0, ref = urlMas.length; 0 <= ref ? l < ref : l > ref; i = 0 <= ref ? ++l : --l) {
-	      results.push(convertToBase64(urlMas[i], dom, function(error, obj, result, url) {
-	        var conv, elem, index, len, len1, m, n;
-	        counter--;
-	        if (error != null) {
-	          console.error("Error base64:", error.stack);
-	        } else {
-	          convMas.push([url, result]);
-	        }
-	        if (counter === 0) {
-	          src = "";
-	          i = 0;
-	          for (m = 0, len = elemMas.length; m < len; m++) {
-	            elem = elemMas[m];
-	            src += elem;
-	            if (urlMas[i] != null) {
-	              j = -1;
-	              for (index = n = 0, len1 = convMas.length; n < len1; index = ++n) {
-	                conv = convMas[index];
-	                if (conv[0] === urlMas[i]) {
-	                  j = index;
-	                  break;
+	    elemMas.push(src.slice(lastIndex));
+	    counter = 0;
+	    for (i = j = 0, ref = urlMas.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+	      if (actualUrls[urlMas[i]]) {
+	        flag = true;
+	        actualUrls[urlMas[i]];
+	        counter++;
+	        console.log('COUNTER++', counter);
+	        convertToBase64(urlMas[i], dom, function(error, obj, result, url) {
+	          var index, urlIndex;
+	          counter--;
+	          console.log(counter);
+	          if (error != null) {
+	            console.error("Error base64:", error.stack);
+	          } else {
+	            actualUrls[url] = result;
+	          }
+	          if (counter === 0) {
+	            console.log(actualUrls);
+	            src = [];
+	            index = 0;
+	            urlIndex = 0;
+	            while (index < elemMas.length) {
+	              src.push(elemMas[index]);
+	              index++;
+	              if (urlMas[urlIndex] != null) {
+	                if (actualUrls[urlMas[urlIndex]]) {
+	                  console.log('URL', actualUrls[urlMas[urlIndex]]);
+	                  src.push('"' + actualUrls[urlMas[urlIndex]] + '"');
+	                } else {
+	                  src.push("");
 	                }
 	              }
-	              if (j >= 0) {
-	                src += convMas[j][1];
+	              if ((elemMas[index] != null)) {
+	                console.log("SECOND_ELEM", elemMas[index]);
+	                src.push(elemMas[index]);
 	              }
-	              i++;
+	              index++;
+	              urlIndex++;
 	            }
+	            return callback(null, dom, src.join(""));
 	          }
-	          return callback(null, dom, src);
-	        }
-	      }));
+	        });
+	      }
 	    }
-	    return results;
+	    if (!flag) {
+	      return callback(null, dom, elemMas.join(''));
+	    }
 	  }
 	};
 

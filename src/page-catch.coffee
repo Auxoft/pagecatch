@@ -15,7 +15,28 @@ class TreeElementNotFound extends Error
 
 # get array with information of every frame
 getSource = () ->
+  linksObj = {}
 
+  getUrlMas = (elem) ->
+    children = elem.children
+    for child in children
+      getUrlMas(child)
+    obj = window.getComputedStyle(elem)
+    console.log elem
+    for elem in obj
+      startIndex = obj[elem].indexOf('url(')
+      while startIndex > -1
+        endIndex = obj[elem].indexOf(')',startIndex+1)
+        key = obj[elem].substring startIndex+4,endIndex
+        if key.startsWith('"') or key.startsWith("'")
+          key = key.substring(1,key.length-1)
+        linksObj[key] = true
+        console.assert linksObj[key]
+        console.log 'ELEM',key
+        startIndex = obj[elem].indexOf('url(',endIndex+1)
+
+  getUrlMas(document.body)
+  
   ###!
   # get frame index in page
   # @return {String} - frame index
@@ -96,7 +117,6 @@ getSource = () ->
     if doctype?
       return [doctype.name, doctype.publicId, doctype.systemId]
     return null
-
   ###!
   # get attributes of tag <html ...>...</html>
   # @param {array} array - array with html attributes
@@ -108,7 +128,6 @@ getSource = () ->
     for elem in array
       mas.push(elem.nodeName, elem.nodeValue)
     return mas
-
   # Function returns iframe url, content, html-atributes,
   # iframe-selectors and iframe-path
   return [
@@ -117,7 +136,8 @@ getSource = () ->
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
-    getDoctype(document.doctype)
+    getDoctype(document.doctype),
+    linksObj
   ]
 
 ###!
@@ -278,7 +298,7 @@ getPage = (tabID, cleanUp, done) ->
       tagsStyles = dom.document.querySelectorAll '*[style]'
       for tag in tagsStyles
         attributeCounter++
-        inlineCSS tag.getAttribute('style'), tag, dom.url,
+        inlineCSS tag.getAttribute('style'), tag, dom.url, dom.actualUrls,
           (error, tag, result) ->
             attributeCounter--
             if error?
@@ -301,17 +321,22 @@ getPage = (tabID, cleanUp, done) ->
         else if(tag.hasAttribute('href'))
           if(tag.getAttribute('rel') == "stylesheet")
             href = convertURL(tag.getAttribute('href'), dom.url)
-            inlineCSS getXHR(href), tag, href, (error, tag, result) ->
-              if error?
-                console.error "style error", error
-              else
-                tagCounter--
-                style = document.createElement 'style'
-                style.innerHTML = result
-                parent = tag.parentElement
-                tag.parentElement.insertBefore style, tag
-                tag.parentElement.removeChild tag
-              callback tagCounter, attributeCounter
+            #console.log "INLINECSSS_START",tag
+            inlineCSS getXHR(href), tag, href, dom.actualUrls,
+              (error, tag, result) ->
+                if error?
+                  console.error "style error", error
+                else
+                  tagCounter--
+                  console.log 'INLINECSSS_END', tag
+                  style = document.createElement 'style'
+                  #console.log result1
+                  #console.log 'RESULT2', result2
+                  style.innerHTML = result
+                  parent = tag.parentElement
+                  tag.parentElement.insertBefore style, tag
+                  tag.parentElement.removeChild tag
+                callback tagCounter, attributeCounter
           else
             href = convertURL(tag.getAttribute('href'), dom.url)
             xhrToBase64 href, tag, (error, tag, result) ->
@@ -323,14 +348,17 @@ getPage = (tabID, cleanUp, done) ->
                 tag.setAttribute "href", result
               callback tagCounter, attributeCounter
         else
-          inlineCSS tag.innerHTML, tag, dom.url, (error, tag, result) ->
-            tagCounter--
-            if error?
-              console.error "(style)inlineCSS error:", error.stack
-              console.error tag.innerHTML
-            else
-              tag.innerHTML = result
-            callback tagCounter, attributeCounter
+          #console.log 'INLINECSSS_START', tag
+          inlineCSS tag.innerHTML, tag, dom.url, dom.actualUrls,
+            (error, tag, result) ->
+              #console.log "INLINECSSS_END", tag
+              tagCounter--
+              if error?
+                console.error "(style)inlineCSS error:", error.stack
+                console.error tag.innerHTML
+              else
+                tag.innerHTML = result
+              callback tagCounter, attributeCounter
     flag = true
   ###!
   # create one object from dictionary of frames
@@ -368,6 +396,7 @@ getPage = (tabID, cleanUp, done) ->
   # @param {Number} counter1 - counter of attributes
   ###
   finalize = (counter, counter1) ->
+    #console.log counter, counter1
     if counter == 0 and counter1 == 0 and flag == true
       createNewObj dictionary[""],""
       _url = dictionary[""].url
@@ -392,6 +421,7 @@ getPage = (tabID, cleanUp, done) ->
     allFrames: true,
     matchAboutBlank: true
   , (arrays) ->
+    #console.log arrays
     for dom in arrays
       obj =
         url: dom[0]
@@ -399,7 +429,9 @@ getPage = (tabID, cleanUp, done) ->
         document: getDocument(dom[1])
         framesIdx: dom[4]
         doctype: dom[5]
+        actualUrls: dom[6]
       dictionary[dom[3]] = obj
+      #console.log dom[6]
     parse(finalize)
 
 module.exports = getPage
