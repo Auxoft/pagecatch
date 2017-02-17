@@ -721,18 +721,22 @@
 	
 	
 	/*!
-	 * add tag meta, that this page is saved by PageCatch
+	 * add meta tag informing that this page is saved by PageCatch
 	 * @param {HTMLDocument} - DOM of current document,
 	 * @param {String} - string with url of current iframe,
+	 * NOTE: if original-url meta alread exists (with original site url), do
+	 * not create a new one. It means, that we resave already stored page
 	 */
 	
 	addMeta = function(DOM, url) {
 	  var head, meta, ref;
-	  meta = document.createElement('meta');
-	  meta.setAttribute('name', 'original-url');
-	  meta.setAttribute('content', url);
-	  head = (ref = DOM.getElementsByTagName('head')[0]) != null ? ref : DOM.getElementsByTagName('body')[0];
-	  return head.insertBefore(meta, head.children[0]);
+	  if (!DOM.querySelector('meta[name="original-url"]')) {
+	    meta = document.createElement('meta');
+	    meta.setAttribute('name', 'original-url');
+	    meta.setAttribute('content', url);
+	    head = (ref = DOM.getElementsByTagName('head')[0]) != null ? ref : DOM.getElementsByTagName('body')[0];
+	    return head.insertBefore(meta, head.children[0]);
+	  }
 	};
 	
 	

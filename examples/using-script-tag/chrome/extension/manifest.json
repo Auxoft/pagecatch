@@ -4,6 +4,13 @@
   "name": "PageCatch",
   "description": "Chrome extension for saving current webpage into one HTML file including all resources",
   "version": "0.1.0",
+  "icons": {
+     "128": "img/icon128-96.png",
+     "16": "img/icon16.png",
+     "32": "img/icon32.png",
+     "48": "img/icon48.png"
+  },
+
 
   "background": {
     "persistent": false,
@@ -15,11 +22,12 @@
   },
 
   "browser_action": {
-    "default_icon": "img/icon.png",
+    "default_icon": "img/icon16.png",
     "default_title": "Click here to save current page!"
   },
 
   "permissions": [
+    "management",
     "tabs",
     "http://*/",
     "https://*/",

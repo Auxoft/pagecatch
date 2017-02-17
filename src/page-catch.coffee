@@ -206,19 +206,22 @@ deleteSendBoxAttrib = (document) ->
     iframe.removeAttribute('sendbox')
 
 ###!
-# add tag meta, that this page is saved by PageCatch
+# add meta tag informing that this page is saved by PageCatch
 # @param {HTMLDocument} - DOM of current document,
 # @param {String} - string with url of current iframe,
+# NOTE: if original-url meta alread exists (with original site url), do
+# not create a new one. It means, that we resave already stored page
 ###
 addMeta = (DOM, url)->
-  meta = document.createElement 'meta'
-  meta.setAttribute 'name','original-url'
-  meta.setAttribute 'content', url
-  head = (
-    DOM.getElementsByTagName('head')[0] ?
-    DOM.getElementsByTagName('body')[0]
-  )
-  head.insertBefore meta, head.children[0]
+  if not DOM.querySelector('meta[name="original-url"]')
+    meta = document.createElement 'meta'
+    meta.setAttribute 'name','original-url'
+    meta.setAttribute 'content', url
+    head = (
+      DOM.getElementsByTagName('head')[0] ?
+      DOM.getElementsByTagName('body')[0]
+    )
+    head.insertBefore meta, head.children[0]
 
 ###!
 # run functions for delete security policy
