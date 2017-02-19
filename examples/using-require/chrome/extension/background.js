@@ -860,6 +860,9 @@
 	      for (l = 0, len2 = tags.length; l < len2; l++) {
 	        tag = tags[l];
 	        tagCounter++;
+	        if (tag.hasAttribute('srcset')) {
+	          tag.setAttribute('srcset', "");
+	        }
 	        if (tag.hasAttribute('src')) {
 	          src = convertURL(tag.getAttribute('src'), dom.url);
 	          xhrToBase64(src, tag, function(error, tag, result) {
@@ -1132,7 +1135,7 @@
 	    elemMas = [];
 	    convMas = [];
 	    lastIndex = 0;
-	    regExp = /(.*?url\()\s*(['"]?)(.*?)\2\s*(\))/gi;
+	    regExp = /([\s\S]*?url\()\s*(['"]?)([\s\S]*?)\2\s*(\))/gmi;
 	    while ((obj = regExp.exec(src)) != null) {
 	      elemMas.push(obj[1], obj[4]);
 	      urlMas.push(convertURL(obj[3], source));

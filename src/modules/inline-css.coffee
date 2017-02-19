@@ -12,7 +12,7 @@ module.exports = (src, dom, source, actualUrls, callback) ->
     elemMas = []
     convMas = []
     lastIndex = 0
-    regExp = /(.*?url\()\s*(['"]?)(.*?)\2\s*(\))/gi
+    regExp =  /([\s\S]*?url\()\s*(['"]?)([\s\S]*?)\2\s*(\))/gmi
     while (obj = regExp.exec(src))?
       elemMas.push obj[1], obj[4]
       urlMas.push convertURL obj[3], source

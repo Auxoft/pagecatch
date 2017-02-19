@@ -312,6 +312,8 @@ getPage = (tabID, cleanUp, done) ->
       tags = dom.document.querySelectorAll 'img,link,style'
       for tag in tags
         tagCounter++
+        if tag.hasAttribute('srcset')
+          tag.setAttribute('srcset',"")
         if(tag.hasAttribute('src'))
           src = convertURL tag.getAttribute('src'), dom.url
           xhrToBase64 src, tag, (error, tag, result) ->
