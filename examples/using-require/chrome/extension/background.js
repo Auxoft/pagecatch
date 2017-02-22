@@ -44,7 +44,7 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, ONEVENT_ATTRIBS, cleanUp, clearOnEventAttribs, clearValueAttrib, deleteAxtAttribs, deleteAxtElements, deleteMeta, deleteScripts, deleteSendBoxAttrib, fileSaver, id, pageCatch, replaceAxtAttribs, save,
+	var META_ATTRIBS_FOR_DEL, ONEVENT_ATTRIBS, cleanUp, clearOnEventAttribs, clearValueAttrib, deleteAxtAttribs, deleteAxtElements, deleteMeta, deleteScripts, deleteSendBoxAttrib, fileSaver, id, pageCatch, replaceAxtAttribs, save, saveFunc,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 	
 	fileSaver = __webpack_require__(1);
@@ -200,10 +200,22 @@
 	
 	save = function(htmlText) {
 	  var file;
-	  file = new File([htmlText], "index.html", {
+	  file = new File([htmlText], 'index.html', {
 	    type: "text/html;charset=utf-8"
 	  });
 	  return fileSaver.saveAs(file);
+	};
+	
+	saveFunc = function(title) {
+	  var _save;
+	  _save = function(htmlText) {
+	    var file;
+	    file = new File([htmlText], title, {
+	      type: "text/html;charset=utf-8"
+	    });
+	    return fileSaver.saveAs(file);
+	  };
+	  return _save;
 	};
 	
 	chrome.management.getAll(function(extensionsArray) {
@@ -228,7 +240,7 @@
 	      currentWindow: true
 	    }, function(tabArray) {
 	      console.log(pageCatch);
-	      return pageCatch(tabArray[0].id, cleanUp, save);
+	      return pageCatch(tabArray[0].id, cleanUp, saveFunc(request.name));
 	    });
 	  }
 	});

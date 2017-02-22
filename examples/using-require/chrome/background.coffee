@@ -126,11 +126,19 @@ cleanUp = (document, url) ->
   deleteAxtAttribs(document)
   replaceAxtAttribs(document)
   clearValueAttrib(document)
- 
-#save our html in file
+
+
 save = (htmlText) ->
-  file = new File([htmlText], "index.html", {type: "text/html;charset=utf-8"})
+  file = new File([htmlText], 'index.html', {type: "text/html;charset=utf-8"})
   fileSaver.saveAs(file)
+
+
+#save our html in file
+saveFunc = (title) ->
+  _save = (htmlText) ->
+    file = new File([htmlText], title, {type: "text/html;charset=utf-8"})
+    fileSaver.saveAs(file)
+  return _save
 
 chrome.management.getAll (extensionsArray) ->
   for extension in extensionsArray
@@ -146,7 +154,7 @@ chrome.runtime.onMessageExternal.addListener (request, sender, sendResponse) ->
   if (sender.id == id)
     chrome.tabs.query {active: true, currentWindow: true}, (tabArray) ->
       console.log pageCatch
-      pageCatch(tabArray[0].id, cleanUp, save)
+      pageCatch(tabArray[0].id, cleanUp, saveFunc(request.name))
 
 #event checker for catch click on extension icon
 chrome.browserAction.onClicked.addListener () ->
