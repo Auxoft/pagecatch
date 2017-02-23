@@ -117,7 +117,14 @@ clearOnEventAttribs = (document) ->
       if attr?.name in ONEVENT_ATTRIBS
         element.removeAttribute(attr.name)
 
+deleteNoScripts = (document) ->
+  scripts = document.querySelectorAll 'noscript'
+  for script in scripts
+    script.parentElement.removeChild script
+  return document
+
 cleanUp = (document, url) ->
+  deleteNoScripts(document)
   deleteScripts(document)
   deleteMeta(document)
   clearOnEventAttribs(document)

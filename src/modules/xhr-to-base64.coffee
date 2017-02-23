@@ -1,4 +1,6 @@
 xhrToBase64 = (url, elem, callback) ->
+  console.log "BASE64URL", url
+
   if(url.indexOf("data:") >= 0)
     callback null, elem, url
   else

@@ -96,9 +96,11 @@ var getPage =
 	          if (key.startsWith('"') || key.startsWith("'")) {
 	            key = key.substring(1, key.length - 1);
 	          }
-	          linksObj[key] = true;
-	          console.assert(linksObj[key]);
-	          console.log('ELEM', key);
+	          if (!key.startsWith('#')) {
+	            linksObj[key] = true;
+	            console.assert(linksObj[key]);
+	            console.log('ELEM', key);
+	          }
 	          results1.push(startIndex = obj[elem].indexOf('url(', endIndex + 1));
 	        }
 	        return results1;
@@ -232,19 +234,20 @@ var getPage =
 	 * @return {HTMLDocument} - created DOM with string
 	 */
 	
-	getDocument = function(htmlText) {
-	  var _html, attribute, attributesBody, body, html, j, len;
+	getDocument = function(htmlText, url) {
+	  var _html, htmlObject, regExp;
 	  _html = document.createElement('html');
-	  html = document.createElement('html');
-	  html.innerHTML = htmlText.substring(htmlText.indexOf("<body"), htmlText.length);
-	  attributesBody = html.getElementsByTagName('body')[0].attributes;
-	  _html.innerHTML = "<head></head><body></body>";
-	  _html.getElementsByTagName('head')[0].innerHTML = htmlText.substring(htmlText.indexOf("<head"), htmlText.indexOf("/head>") + 6);
-	  _html.getElementsByTagName('body')[0].innerHTML = htmlText.substring(htmlText.indexOf("<body"), htmlText.length);
-	  body = _html.getElementsByTagName('body')[0];
-	  for (j = 0, len = attributesBody.length; j < len; j++) {
-	    attribute = attributesBody[j];
-	    body.setAttribute(attribute.name, attribute.value);
+	  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
+	  htmlObject = regExp.exec(htmlText);
+	  if (htmlObject != null) {
+	    _html.innerHTML = htmlObject[3] + htmlObject[4];
+	  } else {
+	    chrome.tabs.executeScript(tabID, {
+	      code: "alert('cannot parse html from " + url + "')",
+	      allFrames: false,
+	      matchAboutBlank: true
+	    });
+	    console.error('cannot parse htmlText from this url:', url);
 	  }
 	  return _html;
 	};
@@ -417,7 +420,7 @@ var getPage =
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var attributeCounter, dom, href, j, k, key, l, len, len1, len2, meta, metas, ref, src, tag, tagCounter, tags, tagsStyles;
+	    var attributeCounter, dom, href, j, k, key, l, len, len1, len2, meta, metas, ref, ref1, src, tag, tagCounter, tags, tagsStyles;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
@@ -435,7 +438,7 @@ var getPage =
 	      for (k = 0, len1 = tagsStyles.length; k < len1; k++) {
 	        tag = tagsStyles[k];
 	        attributeCounter++;
-	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom.actualUrls, function(error, tag, result) {
+	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom, function(error, tag, dom, result) {
 	          attributeCounter--;
 	          if (error != null) {
 	            console.error("Style attr error", error);
@@ -446,6 +449,7 @@ var getPage =
 	        });
 	      }
 	      tags = dom.document.querySelectorAll('img,link,style');
+	      console.log(tags);
 	      for (l = 0, len2 = tags.length; l < len2; l++) {
 	        tag = tags[l];
 	        tagCounter++;
@@ -464,20 +468,20 @@ var getPage =
 	            return callback(tagCounter, attributeCounter);
 	          });
 	        } else if (tag.hasAttribute('href')) {
-	          if (tag.getAttribute('rel') === "stylesheet") {
+	          if (((ref1 = tag.getAttribute('rel')) === "stylesheet" || ref1 === "prefetch stylesheet") && tag.nodeName === 'LINK') {
 	            href = convertURL(tag.getAttribute('href'), dom.url);
-	            inlineCSS(getXHR(href), tag, href, dom.actualUrls, function(error, tag, result) {
+	            inlineCSS(getXHR(href), tag, href, dom, function(error, tag, dom, result) {
 	              var parent, style;
+	              tagCounter--;
 	              if (error != null) {
 	                console.error("style error", error);
 	              } else {
-	                tagCounter--;
 	                console.log('INLINECSSS_END', tag);
 	                style = document.createElement('style');
 	                style.innerHTML = result;
 	                parent = tag.parentElement;
-	                tag.parentElement.insertBefore(style, tag);
-	                tag.parentElement.removeChild(tag);
+	                parent.insertBefore(style, tag);
+	                parent.removeChild(tag);
 	              }
 	              return callback(tagCounter, attributeCounter);
 	            });
@@ -494,7 +498,7 @@ var getPage =
 	            });
 	          }
 	        } else {
-	          inlineCSS(tag.innerHTML, tag, dom.url, dom.actualUrls, function(error, tag, result) {
+	          inlineCSS(tag.innerHTML, tag, dom.url, dom, function(error, tag, dom, result) {
 	            tagCounter--;
 	            if (error != null) {
 	              console.error("(style)inlineCSS error:", error.stack);
@@ -583,7 +587,7 @@ var getPage =
 	      obj = {
 	        url: dom[0],
 	        header: dom[2],
-	        document: getDocument(dom[1]),
+	        document: getDocument(dom[1], dom[0]),
 	        framesIdx: dom[4],
 	        doctype: dom[5],
 	        actualUrls: dom[6]
@@ -605,6 +609,7 @@ var getPage =
 	
 	xhrToBase64 = function(url, elem, callback) {
 	  var reader, xhr;
+	  console.log("BASE64URL", url);
 	  if (url.indexOf("data:") >= 0) {
 	    return callback(null, elem, url);
 	  } else {
@@ -708,17 +713,40 @@ var getPage =
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var convertToBase64, convertURL;
+	var addNewActualUrls, convertToBase64, convertURL, getCounter;
 	
 	convertURL = __webpack_require__(2);
 	
 	convertToBase64 = __webpack_require__(1);
 	
-	module.exports = function(src, dom, source, actualUrls, callback) {
+	getCounter = function(urlMas, actualUrls) {
+	  var counter, i, j, ref;
+	  counter = 0;
+	  for (i = j = 0, ref = urlMas.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+	    if (actualUrls[urlMas[i]]) {
+	      counter++;
+	    }
+	  }
+	  return counter;
+	};
+	
+	addNewActualUrls = function(htmlText, actualUrls, source) {
+	  var obj, re, re1, url;
+	  re = /@font-face\s*\{[\s\S]*?src\s*:\s*(?:url\(\s*(['"])?([\s\S]*?)\1\s*\))+[\s\S]*?.*?\}/g;
+	  re1 = /url\(\s*(['"])?([\s\S]*?)\1\s*\)/g;
+	  while ((obj = re.exec(htmlText)) != null) {
+	    while ((url = re1.exec(obj[0])) != null) {
+	      actualUrls[convertURL(url[2], source)] = true;
+	    }
+	  }
+	  return actualUrls;
+	};
+	
+	module.exports = function(src, element, source, dom, callback) {
 	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, ref, regExp, urlMas;
 	  flag = false;
 	  if (src.indexOf("url(") < 0) {
-	    return callback(null, dom, src);
+	    return callback(null, element, dom.document, src);
 	  } else {
 	    urlMas = [];
 	    elemMas = [];
@@ -731,24 +759,25 @@ var getPage =
 	      lastIndex = regExp.lastIndex;
 	    }
 	    elemMas.push(src.slice(lastIndex));
-	    counter = 0;
+	    dom.actualUrls = addNewActualUrls(src, dom.actualUrls, source);
+	    console.log("MASIVE", urlMas, dom.actualUrls);
+	    counter = getCounter(urlMas, dom.actualUrls);
 	    for (i = j = 0, ref = urlMas.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
-	      if (actualUrls[urlMas[i]]) {
+	      if (dom.actualUrls[urlMas[i]]) {
 	        flag = true;
-	        actualUrls[urlMas[i]];
-	        counter++;
+	        dom.actualUrls[urlMas[i]];
 	        console.log('COUNTER++', counter);
-	        convertToBase64(urlMas[i], dom, function(error, obj, result, url) {
+	        convertToBase64(urlMas[i], element, function(error, obj, result, url) {
 	          var index, urlIndex;
 	          counter--;
 	          console.log(counter);
 	          if (error != null) {
 	            console.error("Error base64:", error.stack);
 	          } else {
-	            actualUrls[url] = result;
+	            dom.actualUrls[url] = result;
 	          }
 	          if (counter === 0) {
-	            console.log(actualUrls);
+	            console.log(dom.actualUrls);
 	            src = [];
 	            index = 0;
 	            urlIndex = 0;
@@ -756,27 +785,25 @@ var getPage =
 	              src.push(elemMas[index]);
 	              index++;
 	              if (urlMas[urlIndex] != null) {
-	                if (actualUrls[urlMas[urlIndex]]) {
-	                  console.log('URL', actualUrls[urlMas[urlIndex]]);
-	                  src.push('"' + actualUrls[urlMas[urlIndex]] + '"');
+	                if (dom.actualUrls[urlMas[urlIndex]]) {
+	                  src.push('"' + dom.actualUrls[urlMas[urlIndex]] + '"');
 	                } else {
 	                  src.push("");
 	                }
 	              }
 	              if ((elemMas[index] != null)) {
-	                console.log("SECOND_ELEM", elemMas[index]);
 	                src.push(elemMas[index]);
 	              }
 	              index++;
 	              urlIndex++;
 	            }
-	            return callback(null, dom, src.join(""));
+	            return callback(null, element, dom.document, src.join(""));
 	          }
 	        });
 	      }
 	    }
 	    if (!flag) {
-	      return callback(null, dom, elemMas.join(''));
+	      return callback(null, element, dom.document, elemMas.join(''));
 	    }
 	  }
 	};

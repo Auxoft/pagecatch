@@ -26,14 +26,15 @@ getSource = () ->
     for elem in obj
       startIndex = obj[elem].indexOf('url(')
       while startIndex > -1
-        endIndex = obj[elem].indexOf(')',startIndex+1)
-        key = obj[elem].substring startIndex+4,endIndex
+        endIndex = obj[elem].indexOf(')', startIndex + 1)
+        key = obj[elem].substring startIndex + 4, endIndex
         if key.startsWith('"') or key.startsWith("'")
-          key = key.substring(1,key.length-1)
-        linksObj[key] = true
-        console.assert linksObj[key]
-        console.log 'ELEM',key
-        startIndex = obj[elem].indexOf('url(',endIndex+1)
+          key = key.substring(1, key.length - 1)
+        if not key.startsWith('#')
+          linksObj[key] = true
+          console.assert linksObj[key]
+          console.log 'ELEM', key
+        startIndex = obj[elem].indexOf('url(', endIndex + 1)
 
   getUrlMas(document.body)
   
@@ -145,24 +146,22 @@ getSource = () ->
 # @param {string} htmlText - string with html code
 # @return {HTMLDocument} - created DOM with string
 ###
-getDocument = (htmlText) ->
+getDocument = (htmlText, url) ->
   _html = document.createElement 'html'
-  html = document.createElement 'html'
-  html.innerHTML = htmlText.substring(
-    htmlText.indexOf("<body"),
-    htmlText.length
-  )
-  attributesBody = html.getElementsByTagName('body')[0].attributes
-  _html.innerHTML = "<head></head><body></body>"
-  _html.getElementsByTagName('head')[0].innerHTML = htmlText.substring(
-    htmlText.indexOf("<head"), htmlText.indexOf("/head>") + 6
-  )
-  _html.getElementsByTagName('body')[0].innerHTML = htmlText.substring(
-    htmlText.indexOf("<body"), htmlText.length
-  )
-  body = _html.getElementsByTagName('body')[0]
-  for attribute in attributesBody
-    body.setAttribute attribute.name, attribute.value
+  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head>[\s\S]*?<\/head>)?([\s\S]*)$/mi
+  htmlObject = regExp.exec(htmlText)
+  if htmlObject?
+    _html.innerHTML = htmlObject[3] + htmlObject[4]
+  else
+    chrome.tabs.executeScript tabID,
+      code: "alert('cannot parse html from #{url}')" # transform function to the
+                                               # string and wrap it into the
+                                               # closure to execute it
+                                               # immidiatelly after
+                                               # injecting
+      allFrames: false,
+      matchAboutBlank: true
+    console.error 'cannot parse htmlText from this url:', url
   return _html
 
 ###!
@@ -301,8 +300,8 @@ getPage = (tabID, cleanUp, done) ->
       tagsStyles = dom.document.querySelectorAll '*[style]'
       for tag in tagsStyles
         attributeCounter++
-        inlineCSS tag.getAttribute('style'), tag, dom.url, dom.actualUrls,
-          (error, tag, result) ->
+        inlineCSS tag.getAttribute('style'), tag, dom.url, dom,
+          (error, tag, dom, result) ->
             attributeCounter--
             if error?
               console.error "Style attr error", error
@@ -310,11 +309,12 @@ getPage = (tabID, cleanUp, done) ->
               tag.setAttribute('style', result)
             callback tagCounter, attributeCounter
       tags = dom.document.querySelectorAll 'img,link,style'
+      console.log tags
       for tag in tags
         tagCounter++
         if tag.hasAttribute('srcset')
           tag.setAttribute('srcset',"")
-        if(tag.hasAttribute('src'))
+        if (tag.hasAttribute('src'))
           src = convertURL tag.getAttribute('src'), dom.url
           xhrToBase64 src, tag, (error, tag, result) ->
             tagCounter--
@@ -323,24 +323,27 @@ getPage = (tabID, cleanUp, done) ->
             else
               tag.setAttribute "src", result
             callback tagCounter, attributeCounter
-        else if(tag.hasAttribute('href'))
-          if(tag.getAttribute('rel') == "stylesheet")
+        else if (tag.hasAttribute('href'))
+          if (
+            tag.getAttribute('rel') in ["stylesheet", "prefetch stylesheet"] and
+            tag.nodeName == 'LINK'
+          )
             href = convertURL(tag.getAttribute('href'), dom.url)
             #console.log "INLINECSSS_START",tag
-            inlineCSS getXHR(href), tag, href, dom.actualUrls,
-              (error, tag, result) ->
+            inlineCSS getXHR(href), tag, href, dom,
+              (error, tag, dom, result) ->
+                tagCounter--
                 if error?
                   console.error "style error", error
                 else
-                  tagCounter--
                   console.log 'INLINECSSS_END', tag
                   style = document.createElement 'style'
                   #console.log result1
                   #console.log 'RESULT2', result2
                   style.innerHTML = result
                   parent = tag.parentElement
-                  tag.parentElement.insertBefore style, tag
-                  tag.parentElement.removeChild tag
+                  parent.insertBefore style, tag
+                  parent.removeChild tag
                 callback tagCounter, attributeCounter
           else
             href = convertURL(tag.getAttribute('href'), dom.url)
@@ -354,8 +357,8 @@ getPage = (tabID, cleanUp, done) ->
               callback tagCounter, attributeCounter
         else
           #console.log 'INLINECSSS_START', tag
-          inlineCSS tag.innerHTML, tag, dom.url, dom.actualUrls,
-            (error, tag, result) ->
+          inlineCSS tag.innerHTML, tag, dom.url, dom,
+            (error, tag, dom, result) ->
               #console.log "INLINECSSS_END", tag
               tagCounter--
               if error?
@@ -431,7 +434,7 @@ getPage = (tabID, cleanUp, done) ->
       obj =
         url: dom[0]
         header: dom[2]
-        document: getDocument(dom[1])
+        document: getDocument(dom[1],dom[0])
         framesIdx: dom[4]
         doctype: dom[5]
         actualUrls: dom[6]
