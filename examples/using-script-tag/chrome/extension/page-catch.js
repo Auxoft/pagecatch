@@ -45,7 +45,7 @@ var getPage =
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, convertURL, defaultCleanUp, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
+	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, convertURL, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
 	  hasProp = {}.hasOwnProperty,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -227,6 +227,16 @@ var getPage =
 	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj];
 	};
 	
+	deleteIframesFromHead = function(head) {
+	  var frames, i, j, ref;
+	  frames = head.querySelectorAll('iframe');
+	  for (i = j = 0, ref = frames.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+	    frames[i].parentElement.removeChild(frames[i]);
+	    i--;
+	  }
+	  return head;
+	};
+	
 	
 	/*!
 	 * convert html text of every frame to DOM-Tree
@@ -237,7 +247,7 @@ var getPage =
 	getDocument = function(htmlText, url) {
 	  var _html, body, bodyRE, head, headRE, htmlObject, regExp;
 	  _html = document.implementation.createHTMLDocument();
-	  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
+	  regExp = /^((?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
 	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
 	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
 	  htmlObject = regExp.exec(htmlText);
@@ -245,6 +255,7 @@ var getPage =
 	  body = htmlObject[4];
 	  if (htmlObject != null) {
 	    _html.head.innerHTML = headRE.exec(head)[1];
+	    _html.head = deleteIframesFromHead(_html.head);
 	    _html.body.innerHTML = bodyRE.exec(body)[1];
 	  }
 	  return _html;
@@ -418,7 +429,7 @@ var getPage =
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var attributeCounter, dom, href, j, k, key, l, len, len1, len2, meta, metas, ref, ref1, src, tag, tagCounter, tags, tagsStyles;
+	    var attributeCounter, dom, href, j, k, key, l, len, len1, len2, meta, metas, ref, ref1, ref2, src, tag, tagCounter, tags, tagsStyles;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
@@ -483,6 +494,9 @@ var getPage =
 	              }
 	              return callback(tagCounter, attributeCounter);
 	            });
+	          } else if (tag.nodeName === 'LINK' && ((ref2 = tag.getAttribute('rel')) === 'dns-prefetch' || ref2 === 'canonical')) {
+	            tag.parentElement.removeChild(tag);
+	            tagCounter--;
 	          } else {
 	            href = convertURL(tag.getAttribute('href'), dom.url);
 	            xhrToBase64(href, tag, function(error, tag, result) {
@@ -753,10 +767,18 @@ var getPage =
 	    convMas = [];
 	    lastIndex = 0;
 	    regExp = /([\s\S]*?url\()\s*(['"]?)([\s\S]*?)\2\s*(\))/gmi;
-	    while ((obj = regExp.exec(src)) != null) {
+	    obj = regExp.exec(src);
+	    while (obj != null) {
 	      elemMas.push(obj[1], obj[4]);
 	      urlMas.push(convertURL(obj[3], source));
 	      lastIndex = regExp.lastIndex;
+	      if (src.indexOf('url(', lastIndex + 1) > -1) {
+	        obj = regExp.exec(src);
+	      } else {
+	        elemMas.push(src.slice(lastIndex));
+	        lastIndex = src.length;
+	        break;
+	      }
 	    }
 	    elemMas.push(src.slice(lastIndex));
 	    dom.actualUrls = addNewActualUrls(src, dom.actualUrls, source);

@@ -29,10 +29,17 @@ module.exports = (src, element, source, dom, callback) ->
     convMas = []
     lastIndex = 0
     regExp =  /([\s\S]*?url\()\s*(['"]?)([\s\S]*?)\2\s*(\))/gmi
-    while (obj = regExp.exec(src))?
+    obj = regExp.exec(src)
+    while obj?
       elemMas.push obj[1], obj[4]
       urlMas.push convertURL obj[3], source
       lastIndex = regExp.lastIndex
+      if src.indexOf('url(',lastIndex+1) > -1
+        obj = regExp.exec(src)
+      else
+        elemMas.push src[lastIndex..]
+        lastIndex = src.length
+        break
     elemMas.push src[lastIndex..]
     dom.actualUrls = addNewActualUrls(src,dom.actualUrls, source)
     console.log "MASIVE", urlMas, dom.actualUrls

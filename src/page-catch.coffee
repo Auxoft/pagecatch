@@ -141,6 +141,12 @@ getSource = () ->
     linksObj
   ]
 
+deleteIframesFromHead = (head) ->
+  frames = head.querySelectorAll('iframe')
+  for i in [0...frames.length]
+    frames[i].parentElement.removeChild(frames[i])
+    i--
+  return head
 ###!
 # convert html text of every frame to DOM-Tree
 # @param {string} htmlText - string with html code
@@ -148,7 +154,7 @@ getSource = () ->
 ###
 getDocument = (htmlText, url) ->
   _html = document.implementation.createHTMLDocument()
-  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi
+  regExp = /^((?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi
   headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
   bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
   htmlObject = regExp.exec(htmlText)
@@ -156,6 +162,7 @@ getDocument = (htmlText, url) ->
   body = htmlObject[4]
   if htmlObject?
     _html.head.innerHTML = headRE.exec(head)[1]
+    _html.head = deleteIframesFromHead(_html.head)
     _html.body.innerHTML = bodyRE.exec(body)[1]
   return _html
 
@@ -340,6 +347,9 @@ getPage = (tabID, cleanUp, done) ->
                   parent.insertBefore style, tag
                   parent.removeChild tag
                 callback tagCounter, attributeCounter
+          else if tag.nodeName == 'LINK' and tag.getAttribute('rel') in ['dns-prefetch', 'canonical']
+            tag.parentElement.removeChild(tag)
+            tagCounter--
           else
             href = convertURL(tag.getAttribute('href'), dom.url)
             xhrToBase64 href, tag, (error, tag, result) ->
