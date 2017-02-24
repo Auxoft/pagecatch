@@ -147,21 +147,16 @@ getSource = () ->
 # @return {HTMLDocument} - created DOM with string
 ###
 getDocument = (htmlText, url) ->
-  _html = document.createElement 'html'
-  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head>[\s\S]*?<\/head>)?([\s\S]*)$/mi
+  _html = document.implementation.createHTMLDocument()
+  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi
+  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
+  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
   htmlObject = regExp.exec(htmlText)
+  head = htmlObject[3]
+  body = htmlObject[4]
   if htmlObject?
-    _html.innerHTML = htmlObject[3] + htmlObject[4]
-  else
-    chrome.tabs.executeScript tabID,
-      code: "alert('cannot parse html from #{url}')" # transform function to the
-                                               # string and wrap it into the
-                                               # closure to execute it
-                                               # immidiatelly after
-                                               # injecting
-      allFrames: false,
-      matchAboutBlank: true
-    console.error 'cannot parse htmlText from this url:', url
+    _html.head.innerHTML = headRE.exec(head)[1]
+    _html.body.innerHTML = bodyRE.exec(body)[1]
   return _html
 
 ###!
@@ -174,7 +169,7 @@ getDocument = (htmlText, url) ->
 getFramePosition = (obj, DOM) ->
   result = []
   _getPositionOfFrame = (obj)->
-    if obj.parentElement == DOM
+    if obj.parentElement == DOM.documentElement
       return
     else
       parent = obj.parentElement
@@ -395,7 +390,8 @@ getPage = (tabID, cleanUp, done) ->
         source = getAttribute(
           dictionary[key].header,
           dictionary[key].doctype
-        ) + _document.innerHTML + "</html>"
+        ) + _document.documentElement.innerHTML + "</html>"
+        console.log source
         frame.setAttribute('srcdoc', source)
 
   ###!
@@ -404,7 +400,7 @@ getPage = (tabID, cleanUp, done) ->
   # @param {Number} counter1 - counter of attributes
   ###
   finalize = (counter, counter1) ->
-    #console.log counter, counter1
+    console.log counter, counter1
     if counter == 0 and counter1 == 0 and flag == true
       createNewObj dictionary[""],""
       _url = dictionary[""].url
@@ -413,7 +409,7 @@ getPage = (tabID, cleanUp, done) ->
       cleanUp?(_document, _url)
       result = getAttribute(
         dictionary[""].header, dictionary[""].doctype
-      ) + _document.innerHTML + "</html>"
+      ) + _document.documentElement.innerHTML + "</html>"
       done?(result)
       dictionary = {}
       flag = false

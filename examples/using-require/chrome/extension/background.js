@@ -669,19 +669,17 @@
 	 */
 	
 	getDocument = function(htmlText, url) {
-	  var _html, htmlObject, regExp;
-	  _html = document.createElement('html');
-	  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
+	  var _html, body, bodyRE, head, headRE, htmlObject, regExp;
+	  _html = document.implementation.createHTMLDocument();
+	  regExp = /^(\s*(?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
+	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
+	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
 	  htmlObject = regExp.exec(htmlText);
+	  head = htmlObject[3];
+	  body = htmlObject[4];
 	  if (htmlObject != null) {
-	    _html.innerHTML = htmlObject[3] + htmlObject[4];
-	  } else {
-	    chrome.tabs.executeScript(tabID, {
-	      code: "alert('cannot parse html from " + url + "')",
-	      allFrames: false,
-	      matchAboutBlank: true
-	    });
-	    console.error('cannot parse htmlText from this url:', url);
+	    _html.head.innerHTML = headRE.exec(head)[1];
+	    _html.body.innerHTML = bodyRE.exec(body)[1];
 	  }
 	  return _html;
 	};
@@ -700,7 +698,7 @@
 	  result = [];
 	  _getPositionOfFrame = function(obj) {
 	    var index, nodeList, parent;
-	    if (obj.parentElement === DOM) {
+	    if (obj.parentElement === DOM.documentElement) {
 	
 	    } else {
 	      parent = obj.parentElement;
@@ -978,7 +976,8 @@
 	        if (typeof cleanUp === "function") {
 	          cleanUp(_document, _url);
 	        }
-	        source = getAttribute(dictionary[key].header, dictionary[key].doctype) + _document.innerHTML + "</html>";
+	        source = getAttribute(dictionary[key].header, dictionary[key].doctype) + _document.documentElement.innerHTML + "</html>";
+	        console.log(source);
 	        results.push(frame.setAttribute('srcdoc', source));
 	      } else {
 	        results.push(void 0);
@@ -994,6 +993,7 @@
 	   */
 	  finalize = function(counter, counter1) {
 	    var _document, _url, result;
+	    console.log(counter, counter1);
 	    if (counter === 0 && counter1 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
 	      _url = dictionary[""].url;
@@ -1002,7 +1002,7 @@
 	      if (typeof cleanUp === "function") {
 	        cleanUp(_document, _url);
 	      }
-	      result = getAttribute(dictionary[""].header, dictionary[""].doctype) + _document.innerHTML + "</html>";
+	      result = getAttribute(dictionary[""].header, dictionary[""].doctype) + _document.documentElement.innerHTML + "</html>";
 	      if (typeof done === "function") {
 	        done(result);
 	      }
@@ -1220,7 +1220,11 @@
 	              index++;
 	              if (urlMas[urlIndex] != null) {
 	                if (dom.actualUrls[urlMas[urlIndex]]) {
-	                  src.push('"' + dom.actualUrls[urlMas[urlIndex]] + '"');
+	                  if (urlMas[urlIndex].startsWith('data:')) {
+	                    src.push('"' + urlMas[urlIndex] + '"');
+	                  } else {
+	                    src.push('"' + dom.actualUrls[urlMas[urlIndex]] + '"');
+	                  }
 	                } else {
 	                  src.push("");
 	                }

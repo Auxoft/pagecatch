@@ -60,7 +60,10 @@ module.exports = (src, element, source, dom, callback) ->
               if urlMas[urlIndex]?
                 if dom.actualUrls[urlMas[urlIndex]]
                   #console.log 'URL', dom.actualUrls[urlMas[urlIndex]]
-                  src.push '"'+ dom.actualUrls[urlMas[urlIndex]] + '"'
+                  if urlMas[urlIndex].startsWith('data:')
+                    src.push '"' + urlMas[urlIndex] + '"'
+                  else
+                    src.push '"'+ dom.actualUrls[urlMas[urlIndex]] + '"'
                 else
                   src.push ""
               if(elemMas[index]?)
