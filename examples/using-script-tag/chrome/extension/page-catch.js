@@ -45,7 +45,7 @@ var getPage =
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, convertURL, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
+	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
 	  hasProp = {}.hasOwnProperty,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -57,6 +57,8 @@ var getPage =
 	getXHR = __webpack_require__(3);
 	
 	inlineCSS = __webpack_require__(4);
+	
+	badLinksRel = ['dns-prefetch', 'canonical', 'publisher', 'prefetch', ' alternate', 'bb:rum'];
 	
 	META_ATTRIBS_FOR_DEL = ['Content-Security-Policy', 'refresh'];
 	
@@ -72,27 +74,21 @@ var getPage =
 	})(Error);
 	
 	getSource = function() {
-	  var getAttribute, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj;
+	  var getAttribute, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj, passOnTree;
 	  linksObj = {};
-	  getUrlMas = function(elem) {
-	    var child, children, endIndex, j, k, key, len, len1, obj, results, startIndex;
-	    children = elem.children;
-	    for (j = 0, len = children.length; j < len; j++) {
-	      child = children[j];
-	      getUrlMas(child);
-	    }
-	    obj = window.getComputedStyle(elem);
-	    console.log(elem);
+	  getUrlMas = function(styleObj) {
+	    var elem, endIndex, j, key, len, results, startIndex;
 	    results = [];
-	    for (k = 0, len1 = obj.length; k < len1; k++) {
-	      elem = obj[k];
-	      startIndex = obj[elem].indexOf('url(');
+	    for (j = 0, len = styleObj.length; j < len; j++) {
+	      elem = styleObj[j];
+	      startIndex = styleObj[elem].indexOf('url(');
 	      results.push((function() {
 	        var results1;
 	        results1 = [];
 	        while (startIndex > -1) {
-	          endIndex = obj[elem].indexOf(')', startIndex + 1);
-	          key = obj[elem].substring(startIndex + 4, endIndex);
+	          endIndex = styleObj[elem].indexOf(')', startIndex + 1);
+	          key = styleObj[elem].substring(startIndex + 4, endIndex);
+	          console.log("URL::", key);
 	          if (key.startsWith('"') || key.startsWith("'")) {
 	            key = key.substring(1, key.length - 1);
 	          }
@@ -101,14 +97,28 @@ var getPage =
 	            console.assert(linksObj[key]);
 	            console.log('ELEM', key);
 	          }
-	          results1.push(startIndex = obj[elem].indexOf('url(', endIndex + 1));
+	          results1.push(startIndex = styleObj[elem].indexOf('url(', endIndex + 1));
 	        }
 	        return results1;
 	      })());
 	    }
 	    return results;
 	  };
-	  getUrlMas(document.body);
+	  passOnTree = function(elem) {
+	    var child, children, j, len;
+	    children = elem.children;
+	    for (j = 0, len = children.length; j < len; j++) {
+	      child = children[j];
+	      passOnTree(child);
+	    }
+	    if (elem.nodeName === 'BODY') {
+	      console.log("HUY");
+	    }
+	    getUrlMas(window.getComputedStyle(elem));
+	    getUrlMas(window.getComputedStyle(elem, ':after'));
+	    return getUrlMas(window.getComputedStyle(elem, ':before'));
+	  };
+	  passOnTree(document.body);
 	
 	  /*!
 	   * get frame index in page
@@ -245,7 +255,7 @@ var getPage =
 	 */
 	
 	getDocument = function(htmlText, url) {
-	  var _html, body, bodyRE, head, headRE, htmlObject, regExp;
+	  var _html, attribute, attributesBody, body, bodyRE, head, headRE, htmlObject, j, len, regExp, tempDoc;
 	  _html = document.implementation.createHTMLDocument();
 	  regExp = /^((?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
 	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
@@ -253,10 +263,17 @@ var getPage =
 	  htmlObject = regExp.exec(htmlText);
 	  head = htmlObject[3];
 	  body = htmlObject[4];
+	  tempDoc = document.createElement('html');
+	  tempDoc.innerHTML = body;
+	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
 	  if (htmlObject != null) {
 	    _html.head.innerHTML = headRE.exec(head)[1];
 	    _html.head = deleteIframesFromHead(_html.head);
 	    _html.body.innerHTML = bodyRE.exec(body)[1];
+	    for (j = 0, len = attributesBody.length; j < len; j++) {
+	      attribute = attributesBody[j];
+	      _html.body.setAttribute(attribute.name, attribute.value);
+	    }
 	  }
 	  return _html;
 	};
@@ -462,8 +479,21 @@ var getPage =
 	      for (l = 0, len2 = tags.length; l < len2; l++) {
 	        tag = tags[l];
 	        tagCounter++;
-	        if (tag.hasAttribute('srcset')) {
+	        if (tag.hasAttribute('srcset') && tag.hasAttribute('src')) {
 	          tag.setAttribute('srcset', "");
+	        }
+	        if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
+	          src = convertURL(tag.getAttribute('srcset'), dom.url);
+	          tag.removeAttribute('srcset');
+	          xhrToBase64(src, tag, function(error, tag, result) {
+	            tagCounter--;
+	            if (error != null) {
+	              console.error("(src)Base 64 error:", error.stack);
+	            } else {
+	              tag.setAttribute("src", result);
+	            }
+	            return callback(tagCounter, attributeCounter);
+	          });
 	        }
 	        if (tag.hasAttribute('src')) {
 	          src = convertURL(tag.getAttribute('src'), dom.url);
@@ -494,7 +524,7 @@ var getPage =
 	              }
 	              return callback(tagCounter, attributeCounter);
 	            });
-	          } else if (tag.nodeName === 'LINK' && ((ref2 = tag.getAttribute('rel')) === 'dns-prefetch' || ref2 === 'canonical')) {
+	          } else if (tag.nodeName === 'LINK' && (ref2 = tag.getAttribute('rel'), indexOf.call(badLinksRel, ref2) >= 0)) {
 	            tag.parentElement.removeChild(tag);
 	            tagCounter--;
 	          } else {
@@ -557,7 +587,6 @@ var getPage =
 	          cleanUp(_document, _url);
 	        }
 	        source = getAttribute(dictionary[key].header, dictionary[key].doctype) + _document.documentElement.innerHTML + "</html>";
-	        console.log(source);
 	        results.push(frame.setAttribute('srcdoc', source));
 	      } else {
 	        results.push(void 0);

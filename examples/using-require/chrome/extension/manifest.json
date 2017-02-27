@@ -3,7 +3,7 @@
 
   "name": "PageCatch",
   "description": "Chrome extension for saving current webpage into one HTML file including all resources",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "icons": {
      "128": "img/icon128-96.png",
      "16": "img/icon16.png",

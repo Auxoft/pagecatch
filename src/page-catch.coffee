@@ -4,7 +4,10 @@ getXHR = require './modules/xhr.coffee'
 inlineCSS = require './modules/inline-css.coffee'
 
 
-
+badLinksRel = [
+  'dns-prefetch', 'canonical','publisher',
+  'prefetch', ' alternate', 'bb:rum'
+]
 META_ATTRIBS_FOR_DEL = [
   'Content-Security-Policy'
   'refresh'
@@ -17,26 +20,33 @@ class TreeElementNotFound extends Error
 getSource = () ->
   linksObj = {}
 
-  getUrlMas = (elem) ->
-    children = elem.children
-    for child in children
-      getUrlMas(child)
-    obj = window.getComputedStyle(elem)
-    console.log elem
-    for elem in obj
-      startIndex = obj[elem].indexOf('url(')
+
+  getUrlMas = (styleObj) ->
+    for elem in styleObj
+      startIndex = styleObj[elem].indexOf('url(')
       while startIndex > -1
-        endIndex = obj[elem].indexOf(')', startIndex + 1)
-        key = obj[elem].substring startIndex + 4, endIndex
+        endIndex = styleObj[elem].indexOf(')', startIndex + 1)
+        key = styleObj[elem].substring(startIndex + 4, endIndex)
+        console.log "URL::", key
         if key.startsWith('"') or key.startsWith("'")
           key = key.substring(1, key.length - 1)
         if not key.startsWith('#')
           linksObj[key] = true
           console.assert linksObj[key]
           console.log 'ELEM', key
-        startIndex = obj[elem].indexOf('url(', endIndex + 1)
+        startIndex = styleObj[elem].indexOf('url(', endIndex + 1)
 
-  getUrlMas(document.body)
+  passOnTree = (elem) ->
+    children = elem.children
+    for child in children
+      passOnTree(child)
+    if elem.nodeName == 'BODY'
+      console.log "HUY"
+    getUrlMas(window.getComputedStyle(elem))
+    getUrlMas(window.getComputedStyle(elem, ':after'))
+    getUrlMas(window.getComputedStyle(elem, ':before'))
+
+  passOnTree(document.body)
   
   ###!
   # get frame index in page
@@ -160,10 +170,15 @@ getDocument = (htmlText, url) ->
   htmlObject = regExp.exec(htmlText)
   head = htmlObject[3]
   body = htmlObject[4]
+  tempDoc = document.createElement('html')
+  tempDoc.innerHTML = body
+  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
   if htmlObject?
     _html.head.innerHTML = headRE.exec(head)[1]
     _html.head = deleteIframesFromHead(_html.head)
     _html.body.innerHTML = bodyRE.exec(body)[1]
+    for attribute in attributesBody
+      _html.body.setAttribute attribute.name, attribute.value
   return _html
 
 ###!
@@ -314,8 +329,18 @@ getPage = (tabID, cleanUp, done) ->
       console.log tags
       for tag in tags
         tagCounter++
-        if tag.hasAttribute('srcset')
+        if tag.hasAttribute('srcset') and tag.hasAttribute('src')
           tag.setAttribute('srcset',"")
+        if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
+          src = convertURL tag.getAttribute('srcset'), dom.url
+          tag.removeAttribute('srcset')
+          xhrToBase64 src, tag, (error, tag, result) ->
+            tagCounter--
+            if error?
+              console.error "(src)Base 64 error:", error.stack
+            else
+              tag.setAttribute "src", result
+            callback tagCounter, attributeCounter
         if (tag.hasAttribute('src'))
           src = convertURL tag.getAttribute('src'), dom.url
           xhrToBase64 src, tag, (error, tag, result) ->
@@ -347,7 +372,7 @@ getPage = (tabID, cleanUp, done) ->
                   parent.insertBefore style, tag
                   parent.removeChild tag
                 callback tagCounter, attributeCounter
-          else if tag.nodeName == 'LINK' and tag.getAttribute('rel') in ['dns-prefetch', 'canonical']
+          else if tag.nodeName == 'LINK' and tag.getAttribute('rel') in badLinksRel
             tag.parentElement.removeChild(tag)
             tagCounter--
           else
@@ -401,7 +426,7 @@ getPage = (tabID, cleanUp, done) ->
           dictionary[key].header,
           dictionary[key].doctype
         ) + _document.documentElement.innerHTML + "</html>"
-        console.log source
+        #console.log source
         frame.setAttribute('srcdoc', source)
 
   ###!
