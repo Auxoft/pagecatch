@@ -325,7 +325,7 @@ getPage = (tabID, cleanUp, done) ->
             else
               tag.setAttribute('style', result)
             callback tagCounter, attributeCounter
-      tags = dom.document.querySelectorAll 'img,link,style'
+      tags = dom.document.querySelectorAll 'img,link,style,source'
       console.log tags
       for tag in tags
         tagCounter++
@@ -340,6 +340,15 @@ getPage = (tabID, cleanUp, done) ->
               console.error "(src)Base 64 error:", error.stack
             else
               tag.setAttribute "src", result
+            callback tagCounter, attributeCounter
+        if tag.hasAttribute('srcset') and tag.nodeName == 'SOURCE'
+          src = convertURL tag.getAttribute('srcset'), dom.url
+          xhrToBase64 src, tag, (error, tag, result) ->
+            tagCounter--
+            if error?
+              console.error "(src)Base 64 error:", error.stack
+            else
+              tag.setAttribute "srcset", result
             callback tagCounter, attributeCounter
         if (tag.hasAttribute('src'))
           src = convertURL tag.getAttribute('src'), dom.url

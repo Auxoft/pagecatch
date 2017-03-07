@@ -7,8 +7,8 @@ module.exports = (url, main) ->
     (url[0] == '"' and url[url.length - 1] == '"') or
     (url[0] == "'" and url[url.length - 1] == "'")
   )
-    url= url.substr 1, url.length - 2
-
+    url = url.substr 1, url.length - 2
+  main = main.split('#')[0]
   if url.startsWith('data:')
     #console.log "DATA", url
     return url

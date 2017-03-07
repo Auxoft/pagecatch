@@ -474,7 +474,7 @@ var getPage =
 	          return callback(tagCounter, attributeCounter);
 	        });
 	      }
-	      tags = dom.document.querySelectorAll('img,link,style');
+	      tags = dom.document.querySelectorAll('img,link,style,source');
 	      console.log(tags);
 	      for (l = 0, len2 = tags.length; l < len2; l++) {
 	        tag = tags[l];
@@ -491,6 +491,18 @@ var getPage =
 	              console.error("(src)Base 64 error:", error.stack);
 	            } else {
 	              tag.setAttribute("src", result);
+	            }
+	            return callback(tagCounter, attributeCounter);
+	          });
+	        }
+	        if (tag.hasAttribute('srcset') && tag.nodeName === 'SOURCE') {
+	          src = convertURL(tag.getAttribute('srcset'), dom.url);
+	          xhrToBase64(src, tag, function(error, tag, result) {
+	            tagCounter--;
+	            if (error != null) {
+	              console.error("(src)Base 64 error:", error.stack);
+	            } else {
+	              tag.setAttribute("srcset", result);
 	            }
 	            return callback(tagCounter, attributeCounter);
 	          });
@@ -696,6 +708,7 @@ var getPage =
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
 	    url = url.substr(1, url.length - 2);
 	  }
+	  main = main.split('#')[0];
 	  if (url.startsWith('data:')) {
 	    return url;
 	  }
