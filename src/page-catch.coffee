@@ -164,21 +164,24 @@ deleteIframesFromHead = (head) ->
 ###
 getDocument = (htmlText, url) ->
   _html = document.implementation.createHTMLDocument()
-  regExp = /^((?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi
+  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
   headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
   bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
   htmlObject = regExp.exec(htmlText)
-  head = htmlObject[3]
-  body = htmlObject[4]
+  head = htmlObject[1]
+  body = htmlObject[2]
   tempDoc = document.createElement('html')
-  tempDoc.innerHTML = body
+  tempDoc.innerHTML = head+body
   attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
+  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
   if htmlObject?
     _html.head.innerHTML = headRE.exec(head)[1]
     _html.head = deleteIframesFromHead(_html.head)
     _html.body.innerHTML = bodyRE.exec(body)[1]
     for attribute in attributesBody
       _html.body.setAttribute attribute.name, attribute.value
+    for attribute in attributesHead
+      _html.head.setAttribute attribute.name, attribute.value
   return _html
 
 ###!

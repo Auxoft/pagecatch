@@ -255,17 +255,18 @@ var getPage =
 	 */
 	
 	getDocument = function(htmlText, url) {
-	  var _html, attribute, attributesBody, body, bodyRE, head, headRE, htmlObject, j, len, regExp, tempDoc;
+	  var _html, attribute, attributesBody, attributesHead, body, bodyRE, head, headRE, htmlObject, j, k, len, len1, regExp, tempDoc;
 	  _html = document.implementation.createHTMLDocument();
-	  regExp = /^((?:<![\s\S]*?>)?\s*(?:<!--[\s\S]*?-->|\s)*?)(<html>(?:<!--[\s\S]*?-->|\s)*)?(<head[\s\S]*?>[\s\S]*?<\/head>)?([\s\S]*)$/mi;
+	  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi;
 	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
 	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
 	  htmlObject = regExp.exec(htmlText);
-	  head = htmlObject[3];
-	  body = htmlObject[4];
+	  head = htmlObject[1];
+	  body = htmlObject[2];
 	  tempDoc = document.createElement('html');
-	  tempDoc.innerHTML = body;
+	  tempDoc.innerHTML = head + body;
 	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
+	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
 	  if (htmlObject != null) {
 	    _html.head.innerHTML = headRE.exec(head)[1];
 	    _html.head = deleteIframesFromHead(_html.head);
@@ -273,6 +274,10 @@ var getPage =
 	    for (j = 0, len = attributesBody.length; j < len; j++) {
 	      attribute = attributesBody[j];
 	      _html.body.setAttribute(attribute.name, attribute.value);
+	    }
+	    for (k = 0, len1 = attributesHead.length; k < len1; k++) {
+	      attribute = attributesHead[k];
+	      _html.head.setAttribute(attribute.name, attribute.value);
 	    }
 	  }
 	  return _html;
@@ -665,7 +670,7 @@ var getPage =
 	xhrToBase64 = function(url, elem, callback) {
 	  var reader, xhr;
 	  console.log("BASE64URL", url);
-	  if (url.indexOf("data:") >= 0) {
+	  if (url.indexOf("data:") >= 0 || url.length < 10) {
 	    return callback(null, elem, url);
 	  } else {
 	    xhr = new XMLHttpRequest();
@@ -729,11 +734,16 @@ var getPage =
 	  if (indexOf.call(mainURLS[mainURLS.length - 1], '.') >= 0 && !flag) {
 	    mainURLS.pop();
 	  }
+	  if (mainURLS[mainURLS.length - 1] === "") {
+	    mainURLS.pop();
+	  }
 	  indexURLS = url.split('/');
 	  for (i = 0, len = indexURLS.length; i < len; i++) {
 	    indexURL = indexURLS[i];
 	    if (indexURL === '..') {
 	      mainURLS.pop();
+	    } else if (indexURL === '.') {
+	      continue;
 	    } else {
 	      mainURLS.push(indexURL);
 	    }

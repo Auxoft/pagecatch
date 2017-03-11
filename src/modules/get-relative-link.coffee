@@ -32,6 +32,7 @@ module.exports = (url, main) ->
   #console.log mainURLS[mainURLS.length-1].indexOf('.')
   if '.' in mainURLS[mainURLS.length-1] and not flag
     mainURLS.pop()
+  mainURLS.pop() if mainURLS[mainURLS.length-1] == ""
     #console.log(mainURLS)
   indexURLS = url.split('/')
   #console.log(mainURLS)
@@ -39,6 +40,8 @@ module.exports = (url, main) ->
   for indexURL in indexURLS
     if indexURL == '..'
       mainURLS.pop()
+    else if indexURL == '.'
+      continue
     else
       mainURLS.push(indexURL)
   #console.log "LASTURL", mainURLS.join('/')
