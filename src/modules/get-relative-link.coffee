@@ -1,17 +1,17 @@
 module.exports = (url, main) ->
   flag = false
-  url = url.replace(/\s/g, '')
-  #console.warn "URL: ", url
-  #console.warn "MAIN: ", main
   if (
     (url[0] == '"' and url[url.length - 1] == '"') or
     (url[0] == "'" and url[url.length - 1] == "'")
   )
     url = url.substr 1, url.length - 2
-  main = main.split('#')[0]
   if url.startsWith('data:')
     #console.log "DATA", url
     return url
+  url = url.replace(/\s/g, '')
+  #console.warn "URL: ", url
+  #console.warn "MAIN: ", main
+  main = main.split('#')[0]
 
   if url.startsWith('//')
     return "https:" + url

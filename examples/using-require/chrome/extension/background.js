@@ -918,6 +918,10 @@
 	      for (l = 0, len2 = tags.length; l < len2; l++) {
 	        tag = tags[l];
 	        tagCounter++;
+	        if (tag.nodeName === 'SOURCE' && (tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1)) {
+	          tagCounter--;
+	          continue;
+	        }
 	        if (tag.hasAttribute('srcset') && tag.hasAttribute('src')) {
 	          tag.setAttribute('srcset', "");
 	        }
@@ -1143,14 +1147,14 @@
 	module.exports = function(url, main) {
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
 	  flag = false;
-	  url = url.replace(/\s/g, '');
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
 	    url = url.substr(1, url.length - 2);
 	  }
-	  main = main.split('#')[0];
 	  if (url.startsWith('data:')) {
 	    return url;
 	  }
+	  url = url.replace(/\s/g, '');
+	  main = main.split('#')[0];
 	  if (url.startsWith('//')) {
 	    return "https:" + url;
 	  }
@@ -1213,11 +1217,13 @@
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var addNewActualUrls, convertToBase64, convertURL, getCounter;
+	var addNewActualUrls, convertToBase64, convertURL, getCounter, getXHR;
 	
 	convertURL = __webpack_require__(6);
 	
 	convertToBase64 = __webpack_require__(5);
+	
+	getXHR = __webpack_require__(7);
 	
 	getCounter = function(urlMas, actualUrls) {
 	  var counter, i, j, ref;
@@ -1243,8 +1249,24 @@
 	};
 	
 	module.exports = function(src, element, source, dom, callback) {
-	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, ref, regExp, urlMas;
+	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, re_1, re_2, ref, regExp, urlMas;
 	  flag = false;
+	  if (src.indexOf("@import") > -1) {
+	    re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi;
+	    re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi;
+	    src = src.replace(re_2, function(str) {
+	      var temp;
+	      re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi;
+	      re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi;
+	      if (str.indexOf('url') > -1) {
+	        temp = re_1.exec(str);
+	        return getXHR(convertURL(temp[1], source));
+	      } else {
+	        temp = re_2.exec(str);
+	        return getXHR(convertURL(temp[1], source));
+	      }
+	    });
+	  }
 	  if (src.indexOf("url(") < 0) {
 	    return callback(null, element, dom.document, src);
 	  } else {
@@ -1293,7 +1315,7 @@
 	              src.push(elemMas[index]);
 	              index++;
 	              if (urlMas[urlIndex] != null) {
-	                if (dom.actualUrls[urlMas[urlIndex]]) {
+	                if (dom.actualUrls[urlMas[urlIndex]] || urlMas[urlIndex].startsWith('data:')) {
 	                  if (urlMas[urlIndex].startsWith('data:')) {
 	                    src.push('"' + urlMas[urlIndex] + '"');
 	                  } else {

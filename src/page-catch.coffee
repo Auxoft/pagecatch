@@ -332,6 +332,9 @@ getPage = (tabID, cleanUp, done) ->
       console.log tags
       for tag in tags
         tagCounter++
+        if tag.nodeName == 'SOURCE' and (tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1)
+          tagCounter--
+          continue
         if tag.hasAttribute('srcset') and tag.hasAttribute('src')
           tag.setAttribute('srcset',"")
         if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
