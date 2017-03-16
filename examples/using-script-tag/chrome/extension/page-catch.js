@@ -45,7 +45,7 @@ var getPage =
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
+	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, deleteStylesFromPage, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
 	  hasProp = {}.hasOwnProperty,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -74,8 +74,46 @@ var getPage =
 	})(Error);
 	
 	getSource = function() {
-	  var getAttribute, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj, passOnTree;
+	  var createSelector, getAttribute, getCssRulesForTagStyle, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj, passOnTree, stylesheetsArray;
 	  linksObj = {};
+	  stylesheetsArray = [];
+	  createSelector = function(obj) {
+	    var child, i, j, len, parent, ref, selector;
+	    selector = [];
+	    while (obj && obj.nodeName !== 'HTML') {
+	      parent = obj.parentElement;
+	      if (parent) {
+	        ref = parent.children;
+	        for (i = j = 0, len = ref.length; j < len; i = ++j) {
+	          child = ref[i];
+	          if (parent.children[i] === obj) {
+	            selector.unshift(i);
+	            break;
+	          }
+	        }
+	      }
+	      obj = parent;
+	    }
+	    selector = selector.join(':');
+	    return selector;
+	  };
+	  getCssRulesForTagStyle = function(stylesheets) {
+	    var j, k, len, len1, ref, rule, str, style;
+	    for (j = 0, len = stylesheets.length; j < len; j++) {
+	      style = stylesheets[j];
+	      str = "";
+	      if (style.rules) {
+	        ref = style.rules;
+	        for (k = 0, len1 = ref.length; k < len1; k++) {
+	          rule = ref[k];
+	          str += rule.cssText;
+	        }
+	        stylesheetsArray.push([str, createSelector(style.ownerNode)]);
+	      }
+	    }
+	    return console.log(stylesheetsArray);
+	  };
+	  getCssRulesForTagStyle(document.styleSheets);
 	  getUrlMas = function(styleObj) {
 	    var elem, endIndex, j, key, len, results, startIndex;
 	    results = [];
@@ -110,9 +148,6 @@ var getPage =
 	    for (j = 0, len = children.length; j < len; j++) {
 	      child = children[j];
 	      passOnTree(child);
-	    }
-	    if (elem.nodeName === 'BODY') {
-	      console.log("HUY");
 	    }
 	    getUrlMas(window.getComputedStyle(elem));
 	    getUrlMas(window.getComputedStyle(elem, ':after'));
@@ -234,7 +269,7 @@ var getPage =
 	    }
 	    return mas;
 	  };
-	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj];
+	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -280,6 +315,7 @@ var getPage =
 	      _html.head.setAttribute(attribute.name, attribute.value);
 	    }
 	  }
+	  console.log(_html.styleSheets);
 	  return _html;
 	};
 	
@@ -431,6 +467,37 @@ var getPage =
 	  return src + ">";
 	};
 	
+	deleteStylesFromPage = function(document) {
+	  var j, len, style, styles;
+	  styles = document.querySelectorAll('style,link[rel=stylesheet]');
+	  for (j = 0, len = styles.length; j < len; j++) {
+	    style = styles[j];
+	    style.parentElement.removeChild(style);
+	  }
+	  return document;
+	};
+	
+	createSelector = function(obj) {
+	  var child, i, j, len, parent, ref, selector;
+	  selector = [];
+	  while (obj && obj.nodeName !== 'HTML') {
+	    parent = obj.parentElement;
+	    if (parent) {
+	      ref = parent.children;
+	      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+	        child = ref[i];
+	        if (parent.children[i] === obj) {
+	          selector.unshift(i);
+	          break;
+	        }
+	      }
+	    }
+	    obj = parent;
+	  }
+	  selector = selector.join(':');
+	  return selector;
+	};
+	
 	
 	/*!
 	 * save page
@@ -451,7 +518,7 @@ var getPage =
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var attributeCounter, dom, href, j, k, key, l, len, len1, len2, meta, metas, ref, ref1, ref2, src, tag, tagCounter, tags, tagsStyles;
+	    var _style, attributeCounter, dom, href, j, k, key, l, len, len1, len2, len3, len4, m, meta, metas, n, ref, ref1, ref2, ref3, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
@@ -465,11 +532,27 @@ var getPage =
 	    tagCounter = 0;
 	    for (key in dictionary) {
 	      dom = dictionary[key];
+	      console.log(dom.document);
+	      styleTags = dom.document.querySelectorAll('style');
+	      for (k = 0, len1 = styleTags.length; k < len1; k++) {
+	        style = styleTags[k];
+	        if (style.innerHTML.length === 0) {
+	          selector = createSelector(style);
+	          ref1 = dom.styleSheets;
+	          for (l = 0, len2 = ref1.length; l < len2; l++) {
+	            _style = ref1[l];
+	            if (_style[1] === selector) {
+	              style.innerHTML = _style[0];
+	              break;
+	            }
+	          }
+	        }
+	      }
 	      tagsStyles = dom.document.querySelectorAll('*[style]');
-	      for (k = 0, len1 = tagsStyles.length; k < len1; k++) {
-	        tag = tagsStyles[k];
+	      for (m = 0, len3 = tagsStyles.length; m < len3; m++) {
+	        tag = tagsStyles[m];
 	        attributeCounter++;
-	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom, function(error, tag, dom, result) {
+	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom, [], function(error, tag, dom, result) {
 	          attributeCounter--;
 	          if (error != null) {
 	            console.error("Style attr error", error);
@@ -479,59 +562,15 @@ var getPage =
 	          return callback(tagCounter, attributeCounter);
 	        });
 	      }
-	      tags = dom.document.querySelectorAll('img,link,style,source');
-	      console.log(tags);
-	      for (l = 0, len2 = tags.length; l < len2; l++) {
-	        tag = tags[l];
+	      tags = dom.document.querySelectorAll('img,link,source,style');
+	      for (n = 0, len4 = tags.length; n < len4; n++) {
+	        tag = tags[n];
 	        tagCounter++;
-	        if (tag.nodeName === 'SOURCE' && (tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1)) {
-	          tagCounter--;
-	          continue;
-	        }
-	        if (tag.hasAttribute('srcset') && tag.hasAttribute('src')) {
-	          tag.setAttribute('srcset', "");
-	        }
-	        if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
-	          src = convertURL(tag.getAttribute('srcset'), dom.url);
-	          tag.removeAttribute('srcset');
-	          xhrToBase64(src, tag, function(error, tag, result) {
-	            tagCounter--;
-	            if (error != null) {
-	              console.error("(src)Base 64 error:", error.stack);
-	            } else {
-	              tag.setAttribute("src", result);
-	            }
-	            return callback(tagCounter, attributeCounter);
-	          });
-	        }
-	        if (tag.hasAttribute('srcset') && tag.nodeName === 'SOURCE') {
-	          src = convertURL(tag.getAttribute('srcset'), dom.url);
-	          xhrToBase64(src, tag, function(error, tag, result) {
-	            tagCounter--;
-	            if (error != null) {
-	              console.error("(src)Base 64 error:", error.stack);
-	            } else {
-	              tag.setAttribute("srcset", result);
-	            }
-	            return callback(tagCounter, attributeCounter);
-	          });
-	        }
-	        if (tag.hasAttribute('src')) {
-	          src = convertURL(tag.getAttribute('src'), dom.url);
-	          xhrToBase64(src, tag, function(error, tag, result) {
-	            tagCounter--;
-	            if (error != null) {
-	              console.error("(src)Base 64 error:", error.stack);
-	            } else {
-	              tag.setAttribute("src", result);
-	            }
-	            return callback(tagCounter, attributeCounter);
-	          });
-	        } else if (tag.hasAttribute('href')) {
-	          if (((ref1 = tag.getAttribute('rel')) === "stylesheet" || ref1 === "prefetch stylesheet") && tag.nodeName === 'LINK') {
+	        if (tag.nodeName === 'LINK') {
+	          if (((ref2 = tag.getAttribute('rel')) === "stylesheet" || ref2 === "prefetch stylesheet")) {
 	            href = convertURL(tag.getAttribute('href'), dom.url);
-	            inlineCSS(getXHR(href), tag, href, dom, function(error, tag, dom, result) {
-	              var parent, style;
+	            inlineCSS(getXHR(href), tag, href, dom, [], function(error, tag, dom, result) {
+	              var parent;
 	              tagCounter--;
 	              if (error != null) {
 	                console.error("style error", error);
@@ -545,9 +584,11 @@ var getPage =
 	              }
 	              return callback(tagCounter, attributeCounter);
 	            });
-	          } else if (tag.nodeName === 'LINK' && (ref2 = tag.getAttribute('rel'), indexOf.call(badLinksRel, ref2) >= 0)) {
+	            continue;
+	          } else if (ref3 = tag.getAttribute('rel'), indexOf.call(badLinksRel, ref3) >= 0) {
 	            tag.parentElement.removeChild(tag);
 	            tagCounter--;
+	            continue;
 	          } else {
 	            href = convertURL(tag.getAttribute('href'), dom.url);
 	            xhrToBase64(href, tag, function(error, tag, result) {
@@ -559,9 +600,54 @@ var getPage =
 	              }
 	              return callback(tagCounter, attributeCounter);
 	            });
+	            continue;
 	          }
-	        } else {
-	          inlineCSS(tag.innerHTML, tag, dom.url, dom, function(error, tag, dom, result) {
+	        }
+	        if (tag.nodeName === 'IMG') {
+	          if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
+	            src = convertURL(tag.getAttribute('srcset'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("srcset", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
+	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("src", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
+	            tag.setAttribute('srcset', "");
+	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("src", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else {
+	            tagCounter--;
+	            continue;
+	          }
+	        }
+	        if (tag.nodeName === 'STYLE') {
+	          inlineCSS(tag.innerHTML, tag, dom.url, dom, [], function(error, tag, dom, result) {
 	            tagCounter--;
 	            if (error != null) {
 	              console.error("(style)inlineCSS error:", error.stack);
@@ -571,10 +657,58 @@ var getPage =
 	            }
 	            return callback(tagCounter, attributeCounter);
 	          });
+	          continue;
+	        }
+	        if (tag.nodeName === 'SOURCE') {
+	          if (tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1) {
+	            tagCounter--;
+	            continue;
+	          } else if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
+	            src = convertURL(tag.getAttribute('srcset'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("srcset", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
+	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("src", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
+	            tag.setAttribute('srcset', "");
+	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("src", result);
+	              }
+	              return callback(tagCounter, attributeCounter);
+	            });
+	            continue;
+	          } else {
+	            tagCounter--;
+	            continue;
+	          }
 	        }
 	      }
 	    }
-	    return flag = true;
+	    flag = true;
+	    return callback(tagCounter, attributeCounter);
 	  };
 	
 	  /*!
@@ -623,7 +757,7 @@ var getPage =
 	   */
 	  finalize = function(counter, counter1) {
 	    var _document, _url, result;
-	    console.log(counter, counter1);
+	    console.log(counter, counter1, flag);
 	    if (counter === 0 && counter1 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
 	      _url = dictionary[""].url;
@@ -654,7 +788,8 @@ var getPage =
 	        document: getDocument(dom[1], dom[0]),
 	        framesIdx: dom[4],
 	        doctype: dom[5],
-	        actualUrls: dom[6]
+	        actualUrls: dom[6],
+	        styleSheets: dom[7]
 	      };
 	      dictionary[dom[3]] = obj;
 	    }
@@ -814,7 +949,7 @@ var getPage =
 	  return actualUrls;
 	};
 	
-	module.exports = function(src, element, source, dom, callback) {
+	module.exports = function(src, element, source, dom, styleMas, callback) {
 	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, re_1, re_2, ref, regExp, urlMas;
 	  flag = false;
 	  if (src.indexOf("@import") > -1) {
@@ -834,7 +969,7 @@ var getPage =
 	    });
 	  }
 	  if (src.indexOf("url(") < 0) {
-	    return callback(null, element, dom.document, src);
+	    return callback(null, element, dom, src, styleMas);
 	  } else {
 	    urlMas = [];
 	    elemMas = [];
@@ -897,13 +1032,13 @@ var getPage =
 	              index++;
 	              urlIndex++;
 	            }
-	            return callback(null, element, dom.document, src.join(""));
+	            return callback(null, element, dom, src.join(""), styleMas);
 	          }
 	        });
 	      }
 	    }
 	    if (!flag) {
-	      return callback(null, element, dom.document, elemMas.join(''));
+	      return callback(null, element, dom, elemMas.join(''), styleMas);
 	    }
 	  }
 	};

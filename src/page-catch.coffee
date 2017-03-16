@@ -19,6 +19,33 @@ class TreeElementNotFound extends Error
 # get array with information of every frame
 getSource = () ->
   linksObj = {}
+  stylesheetsArray = []
+
+
+  createSelector = (obj)->
+    selector = []
+    while (obj && obj.nodeName != 'HTML')
+      parent = obj.parentElement
+      if (parent)
+        for child,i in parent.children
+          if (parent.children[i] == obj)
+            selector.unshift(i)
+            break
+      obj = parent
+    selector = selector.join(':')
+
+    return selector
+
+
+  getCssRulesForTagStyle = (stylesheets) ->
+    for style in stylesheets
+      str = ""
+      if style.rules
+        for rule in style.rules
+          str+= rule.cssText
+        stylesheetsArray.push [str,createSelector(style.ownerNode)]
+    console.log stylesheetsArray
+  getCssRulesForTagStyle(document.styleSheets)
 
 
   getUrlMas = (styleObj) ->
@@ -40,8 +67,6 @@ getSource = () ->
     children = elem.children
     for child in children
       passOnTree(child)
-    if elem.nodeName == 'BODY'
-      console.log "HUY"
     getUrlMas(window.getComputedStyle(elem))
     getUrlMas(window.getComputedStyle(elem, ':after'))
     getUrlMas(window.getComputedStyle(elem, ':before'))
@@ -148,7 +173,8 @@ getSource = () ->
     getFramePath(),
     getElementPath(document.documentElement),
     getDoctype(document.doctype),
-    linksObj
+    linksObj,
+    stylesheetsArray
   ]
 
 deleteIframesFromHead = (head) ->
@@ -182,6 +208,7 @@ getDocument = (htmlText, url) ->
       _html.body.setAttribute attribute.name, attribute.value
     for attribute in attributesHead
       _html.head.setAttribute attribute.name, attribute.value
+  console.log _html.styleSheets
   return _html
 
 ###!
@@ -291,6 +318,26 @@ getDoctype = (array) ->
     #console.log src
   return src + ">"
 
+
+deleteStylesFromPage = (document)->
+  styles = document.querySelectorAll('style,link[rel=stylesheet]')
+  for style in styles
+    style.parentElement.removeChild(style)
+  return document
+
+createSelector = (obj)->
+  selector = []
+  while (obj && obj.nodeName != 'HTML')
+    parent = obj.parentElement
+    if (parent)
+      for child,i in parent.children
+        if (parent.children[i] == obj)
+          selector.unshift(i)
+          break
+    obj = parent
+  selector = selector.join(':')
+
+  return selector
 ###!
 # save page
 # @param {Number} tabID - number of tab which you want to save,
@@ -317,10 +364,20 @@ getPage = (tabID, cleanUp, done) ->
     attributeCounter = 0
     tagCounter = 0
     for key, dom of dictionary
+      #dom.document = deleteStylesFromPage(dom.document)
+      console.log dom.document
+      styleTags = dom.document.querySelectorAll 'style'
+      for style in styleTags
+        if style.innerHTML.length == 0
+          selector = createSelector(style)
+          for _style in dom.styleSheets
+            if _style[1] == selector
+              style.innerHTML = _style[0]
+              break
       tagsStyles = dom.document.querySelectorAll '*[style]'
       for tag in tagsStyles
         attributeCounter++
-        inlineCSS tag.getAttribute('style'), tag, dom.url, dom,
+        inlineCSS tag.getAttribute('style'), tag, dom.url, dom, [],
           (error, tag, dom, result) ->
             attributeCounter--
             if error?
@@ -328,81 +385,83 @@ getPage = (tabID, cleanUp, done) ->
             else
               tag.setAttribute('style', result)
             callback tagCounter, attributeCounter
-      tags = dom.document.querySelectorAll 'img,link,style,source'
-      console.log tags
+      tags = dom.document.querySelectorAll 'img,link,source,style'
       for tag in tags
         tagCounter++
-        if tag.nodeName == 'SOURCE' and (tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1)
-          tagCounter--
-          continue
-        if tag.hasAttribute('srcset') and tag.hasAttribute('src')
-          tag.setAttribute('srcset',"")
-        if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
-          src = convertURL tag.getAttribute('srcset'), dom.url
-          tag.removeAttribute('srcset')
-          xhrToBase64 src, tag, (error, tag, result) ->
-            tagCounter--
-            if error?
-              console.error "(src)Base 64 error:", error.stack
-            else
-              tag.setAttribute "src", result
-            callback tagCounter, attributeCounter
-        if tag.hasAttribute('srcset') and tag.nodeName == 'SOURCE'
-          src = convertURL tag.getAttribute('srcset'), dom.url
-          xhrToBase64 src, tag, (error, tag, result) ->
-            tagCounter--
-            if error?
-              console.error "(src)Base 64 error:", error.stack
-            else
-              tag.setAttribute "srcset", result
-            callback tagCounter, attributeCounter
-        if (tag.hasAttribute('src'))
-          src = convertURL tag.getAttribute('src'), dom.url
-          xhrToBase64 src, tag, (error, tag, result) ->
-            tagCounter--
-            if error?
-              console.error "(src)Base 64 error:", error.stack
-            else
-              tag.setAttribute "src", result
-            callback tagCounter, attributeCounter
-        else if (tag.hasAttribute('href'))
+        if tag.nodeName == 'LINK'
           if (
-            tag.getAttribute('rel') in ["stylesheet", "prefetch stylesheet"] and
-            tag.nodeName == 'LINK'
-          )
-            href = convertURL(tag.getAttribute('href'), dom.url)
-            #console.log "INLINECSSS_START",tag
-            inlineCSS getXHR(href), tag, href, dom,
-              (error, tag, dom, result) ->
+            tag.getAttribute('rel') in ["stylesheet", "prefetch stylesheet"]
+            )
+              href = convertURL(tag.getAttribute('href'), dom.url)
+              #console.log "INLINECSSS_START",tag
+              inlineCSS getXHR(href), tag, href, dom, [],
+                (error, tag, dom, result) ->
+                  tagCounter--
+                  if error?
+                    console.error "style error", error
+                  else
+                    console.log 'INLINECSSS_END', tag
+                    style = document.createElement 'style'
+                    #console.log result1
+                    #console.log 'RESULT2', result2
+                    style.innerHTML = result
+                    parent = tag.parentElement
+                    parent.insertBefore style, tag
+                    parent.removeChild tag
+                  callback tagCounter, attributeCounter
+              continue
+            else if tag.getAttribute('rel') in badLinksRel
+              tag.parentElement.removeChild(tag)
+              tagCounter--
+              continue
+            else
+              href = convertURL(tag.getAttribute('href'), dom.url)
+              xhrToBase64 href, tag, (error, tag, result) ->
                 tagCounter--
                 if error?
-                  console.error "style error", error
+                  console.error "(href) xhrToBase64 error (href=#{href}):", \
+                    error.stack
                 else
-                  console.log 'INLINECSSS_END', tag
-                  style = document.createElement 'style'
-                  #console.log result1
-                  #console.log 'RESULT2', result2
-                  style.innerHTML = result
-                  parent = tag.parentElement
-                  parent.insertBefore style, tag
-                  parent.removeChild tag
+                  tag.setAttribute "href", result
                 callback tagCounter, attributeCounter
-          else if tag.nodeName == 'LINK' and tag.getAttribute('rel') in badLinksRel
-            tag.parentElement.removeChild(tag)
-            tagCounter--
-          else
-            href = convertURL(tag.getAttribute('href'), dom.url)
-            xhrToBase64 href, tag, (error, tag, result) ->
+              continue
+        if tag.nodeName == 'IMG'
+          if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
+            src = convertURL tag.getAttribute('srcset'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
-                console.error "(href) xhrToBase64 error (href=#{href}):", \
-                  error.stack
+                console.error "(src)Base 64 error:", error.stack
               else
-                tag.setAttribute "href", result
+                tag.setAttribute "srcset", result
               callback tagCounter, attributeCounter
-        else
-          #console.log 'INLINECSSS_START', tag
-          inlineCSS tag.innerHTML, tag, dom.url, dom,
+            continue
+          else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
+            src = convertURL tag.getAttribute('src'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "src", result
+              callback tagCounter, attributeCounter
+            continue
+          else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
+            tag.setAttribute('srcset',"")
+            src = convertURL tag.getAttribute('src'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "src", result
+              callback tagCounter, attributeCounter
+            continue
+          else
+            tagCounter--
+            continue
+        if tag.nodeName == 'STYLE'
+          inlineCSS tag.innerHTML, tag, dom.url, dom, [],
             (error, tag, dom, result) ->
               #console.log "INLINECSSS_END", tag
               tagCounter--
@@ -412,7 +471,47 @@ getPage = (tabID, cleanUp, done) ->
               else
                 tag.innerHTML = result
               callback tagCounter, attributeCounter
+          continue
+        if tag.nodeName == 'SOURCE'
+          if tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1
+            tagCounter--
+            continue
+          else if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
+            src = convertURL tag.getAttribute('srcset'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "srcset", result
+              callback tagCounter, attributeCounter
+            continue
+          else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
+            src = convertURL tag.getAttribute('src'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "src", result
+              callback tagCounter, attributeCounter
+            continue
+          else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
+            tag.setAttribute('srcset',"")
+            src = convertURL tag.getAttribute('src'), dom.url
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "src", result
+              callback tagCounter, attributeCounter
+            continue
+          else
+            tagCounter--
+            continue
     flag = true
+    callback tagCounter, attributeCounter
   ###!
   # create one object from dictionary of frames
   # @param {Object} obj - obj of dictionary(any frame from page)
@@ -450,7 +549,7 @@ getPage = (tabID, cleanUp, done) ->
   # @param {Number} counter1 - counter of attributes
   ###
   finalize = (counter, counter1) ->
-    console.log counter, counter1
+    console.log counter, counter1, flag
     if counter == 0 and counter1 == 0 and flag == true
       createNewObj dictionary[""],""
       _url = dictionary[""].url
@@ -484,6 +583,7 @@ getPage = (tabID, cleanUp, done) ->
         framesIdx: dom[4]
         doctype: dom[5]
         actualUrls: dom[6]
+        styleSheets: dom[7]
       dictionary[dom[3]] = obj
       #console.log dom[6]
     parse(finalize)

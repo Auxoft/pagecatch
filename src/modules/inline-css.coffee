@@ -19,7 +19,7 @@ addNewActualUrls = (htmlText, actualUrls, source) ->
       actualUrls[convertURL(url[2], source)] = true
   return actualUrls
 
-module.exports = (src, element, source, dom, callback) ->
+module.exports = (src, element, source, dom, styleMas, callback) ->
   flag = false
   if src.indexOf("@import") > -1
     re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi
@@ -35,7 +35,7 @@ module.exports = (src, element, source, dom, callback) ->
         return getXHR(convertURL(temp[1], source))
     )
   if(src.indexOf("url(") < 0)
-    callback null, element, dom.document, src
+    callback null, element, dom, src, styleMas
   else
     #console.log "inline-css:", src, element
     urlMas = []
@@ -92,7 +92,7 @@ module.exports = (src, element, source, dom, callback) ->
                 src.push(elemMas[index])
               index++
               urlIndex++
-            callback null, element, dom.document, src.join("")
+            callback null, element, dom, src.join(""), styleMas
     if !flag
-      callback null, element, dom.document, elemMas.join('')
+      callback null, element, dom, elemMas.join(''), styleMas
 
