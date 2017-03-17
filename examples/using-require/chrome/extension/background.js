@@ -479,7 +479,7 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, defaultCleanUp, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, deleteStylesFromPage, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
+	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, defaultCleanUp, deleteElemsFromHead, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
 	  hasProp = {}.hasOwnProperty,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -901,12 +901,12 @@
 	  return src + ">";
 	};
 	
-	deleteStylesFromPage = function(document) {
-	  var j, len, style, styles;
-	  styles = document.querySelectorAll('style,link[rel=stylesheet]');
-	  for (j = 0, len = styles.length; j < len; j++) {
-	    style = styles[j];
-	    style.parentElement.removeChild(style);
+	deleteElemsFromHead = function(obj) {
+	  var elem, elems, j, len;
+	  elems = obj.querySelectorAll('div,img');
+	  for (j = 0, len = elems.length; j < len; j++) {
+	    elem = elems[j];
+	    elem.parentElement.removeChild(elem);
 	  }
 	  return document;
 	};
@@ -966,6 +966,7 @@
 	    tagCounter = 0;
 	    for (key in dictionary) {
 	      dom = dictionary[key];
+	      dom.document.head = deleteElemsFromHead(dom.document.head);
 	      console.log(dom.document);
 	      styleTags = dom.document.querySelectorAll('style');
 	      for (k = 0, len1 = styleTags.length; k < len1; k++) {

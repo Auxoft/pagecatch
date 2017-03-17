@@ -322,10 +322,10 @@ getDoctype = (array) ->
   return src + ">"
 
 
-deleteStylesFromPage = (document)->
-  styles = document.querySelectorAll('style,link[rel=stylesheet]')
-  for style in styles
-    style.parentElement.removeChild(style)
+deleteElemsFromHead = (obj)->
+  elems = obj.querySelectorAll('div,img')
+  for elem in elems
+    elem.parentElement.removeChild(elem)
   return document
 
 createSelector = (obj)->
@@ -367,7 +367,7 @@ getPage = (tabID, cleanUp, done) ->
     attributeCounter = 0
     tagCounter = 0
     for key, dom of dictionary
-      #dom.document = deleteStylesFromPage(dom.document)
+      dom.document.head = deleteElemsFromHead(dom.document.head)
       console.log dom.document
       styleTags = dom.document.querySelectorAll 'style'
       for style in styleTags
