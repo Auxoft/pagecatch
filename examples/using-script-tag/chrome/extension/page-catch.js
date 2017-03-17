@@ -269,7 +269,7 @@ var getPage =
 	    }
 	    return mas;
 	  };
-	  return [document.URL, document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -300,6 +300,7 @@ var getPage =
 	  body = htmlObject[2];
 	  tempDoc = document.createElement('html');
 	  tempDoc.innerHTML = head + body;
+	  console.log(tempDoc);
 	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
 	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
 	  if (htmlObject != null) {
@@ -315,7 +316,6 @@ var getPage =
 	      _html.head.setAttribute(attribute.name, attribute.value);
 	    }
 	  }
-	  console.log(_html.styleSheets);
 	  return _html;
 	};
 	
@@ -518,7 +518,7 @@ var getPage =
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var _style, attributeCounter, dom, href, j, k, key, l, len, len1, len2, len3, len4, m, meta, metas, n, ref, ref1, ref2, ref3, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles;
+	    var _style, attributeCounter, attributes, dom, href, j, k, key, l, len, len1, len2, len3, len4, m, meta, metas, n, ref, ref1, ref2, ref3, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
@@ -552,7 +552,7 @@ var getPage =
 	      for (m = 0, len3 = tagsStyles.length; m < len3; m++) {
 	        tag = tagsStyles[m];
 	        attributeCounter++;
-	        inlineCSS(tag.getAttribute('style'), tag, dom.url, dom, [], function(error, tag, dom, result) {
+	        inlineCSS(tag.getAttribute('style'), tag, dom.url[0], dom, [], function(error, tag, dom, result) {
 	          attributeCounter--;
 	          if (error != null) {
 	            console.error("Style attr error", error);
@@ -568,9 +568,10 @@ var getPage =
 	        tagCounter++;
 	        if (tag.nodeName === 'LINK') {
 	          if (((ref2 = tag.getAttribute('rel')) === "stylesheet" || ref2 === "prefetch stylesheet")) {
-	            href = convertURL(tag.getAttribute('href'), dom.url);
-	            inlineCSS(getXHR(href), tag, href, dom, [], function(error, tag, dom, result) {
-	              var parent;
+	            href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1]);
+	            attributes = tag.attributes;
+	            inlineCSS(getXHR(href), tag, href, dom, attributes, function(error, tag, dom, result, attributes) {
+	              var attribute, len5, o, parent;
 	              tagCounter--;
 	              if (error != null) {
 	                console.error("style error", error);
@@ -578,6 +579,10 @@ var getPage =
 	                console.log('INLINECSSS_END', tag);
 	                style = document.createElement('style');
 	                style.innerHTML = result;
+	                for (o = 0, len5 = attributes.length; o < len5; o++) {
+	                  attribute = attributes[o];
+	                  style.setAttribute(attribute.name, attribute.value);
+	                }
 	                parent = tag.parentElement;
 	                parent.insertBefore(style, tag);
 	                parent.removeChild(tag);
@@ -590,7 +595,7 @@ var getPage =
 	            tagCounter--;
 	            continue;
 	          } else {
-	            href = convertURL(tag.getAttribute('href'), dom.url);
+	            href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1]);
 	            xhrToBase64(href, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -605,7 +610,7 @@ var getPage =
 	        }
 	        if (tag.nodeName === 'IMG') {
 	          if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
-	            src = convertURL(tag.getAttribute('srcset'), dom.url);
+	            src = convertURL(tag.getAttribute('srcset'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -617,7 +622,7 @@ var getPage =
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
-	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            src = convertURL(tag.getAttribute('src'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -630,7 +635,7 @@ var getPage =
 	            continue;
 	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
 	            tag.setAttribute('srcset', "");
-	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            src = convertURL(tag.getAttribute('src'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -647,7 +652,7 @@ var getPage =
 	          }
 	        }
 	        if (tag.nodeName === 'STYLE') {
-	          inlineCSS(tag.innerHTML, tag, dom.url, dom, [], function(error, tag, dom, result) {
+	          inlineCSS(tag.innerHTML, tag, dom.url[0], dom, [], function(error, tag, dom, result) {
 	            tagCounter--;
 	            if (error != null) {
 	              console.error("(style)inlineCSS error:", error.stack);
@@ -664,7 +669,7 @@ var getPage =
 	            tagCounter--;
 	            continue;
 	          } else if (tag.hasAttribute('srcset') && !tag.hasAttribute('src')) {
-	            src = convertURL(tag.getAttribute('srcset'), dom.url);
+	            src = convertURL(tag.getAttribute('srcset'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -676,7 +681,7 @@ var getPage =
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
-	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            src = convertURL(tag.getAttribute('src'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -689,7 +694,7 @@ var getPage =
 	            continue;
 	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
 	            tag.setAttribute('srcset', "");
-	            src = convertURL(tag.getAttribute('src'), dom.url);
+	            src = convertURL(tag.getAttribute('src'), dom.url[0], dom.url[1]);
 	            xhrToBase64(src, tag, function(error, tag, result) {
 	              tagCounter--;
 	              if (error != null) {
@@ -845,7 +850,7 @@ var getPage =
 
 	var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 	
-	module.exports = function(url, main) {
+	module.exports = function(url, main, protocol) {
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
 	  flag = false;
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
@@ -857,7 +862,7 @@ var getPage =
 	  url = url.replace(/\s/g, '');
 	  main = main.split('#')[0];
 	  if (url.startsWith('//')) {
-	    return "https:" + url;
+	    return protocol + url;
 	  }
 	  if (url.match(/^[\w\-_\d]+:/)) {
 	    return url;
@@ -949,27 +954,24 @@ var getPage =
 	  return actualUrls;
 	};
 	
-	module.exports = function(src, element, source, dom, styleMas, callback) {
-	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, re_1, re_2, ref, regExp, urlMas;
+	module.exports = function(src, element, source, dom, attributes, callback) {
+	  var convMas, counter, elemMas, flag, i, j, lastIndex, obj, re, ref, regExp, urlMas;
 	  flag = false;
 	  if (src.indexOf("@import") > -1) {
-	    re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi;
-	    re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi;
-	    src = src.replace(re_2, function(str) {
+	    re = /@import\s+(?:url\((['"])?([\s\S]*?)\1\)|(['"])?([\s\S]*?)\3)\s*[^;]*?(?:;|$)/gmi;
+	    src = src.replace(re, function(str) {
 	      var temp;
-	      re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi;
-	      re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi;
-	      if (str.indexOf('url') > -1) {
-	        temp = re_1.exec(str);
-	        return getXHR(convertURL(temp[1], source));
-	      } else {
-	        temp = re_2.exec(str);
-	        return getXHR(convertURL(temp[1], source));
+	      temp = re.exec(str);
+	      if (temp[2] != null) {
+	        return getXHR(convertURL(temp[2], source));
+	      }
+	      if (temp[4] != null) {
+	        return getXHR(convertURL(temp[4], source));
 	      }
 	    });
 	  }
 	  if (src.indexOf("url(") < 0) {
-	    return callback(null, element, dom, src, styleMas);
+	    return callback(null, element, dom, src, attributes);
 	  } else {
 	    urlMas = [];
 	    elemMas = [];
@@ -1023,7 +1025,7 @@ var getPage =
 	                    src.push('"' + dom.actualUrls[urlMas[urlIndex]] + '"');
 	                  }
 	                } else {
-	                  src.push("");
+	                  src.push('""');
 	                }
 	              }
 	              if ((elemMas[index] != null)) {
@@ -1032,13 +1034,13 @@ var getPage =
 	              index++;
 	              urlIndex++;
 	            }
-	            return callback(null, element, dom, src.join(""), styleMas);
+	            return callback(null, element, dom, src.join(""), attributes);
 	          }
 	        });
 	      }
 	    }
 	    if (!flag) {
-	      return callback(null, element, dom, elemMas.join(''), styleMas);
+	      return callback(null, element, dom, elemMas.join(''), attributes);
 	    }
 	  }
 	};

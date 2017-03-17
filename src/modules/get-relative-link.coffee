@@ -1,4 +1,4 @@
-module.exports = (url, main) ->
+module.exports = (url, main,protocol) ->
   flag = false
   if (
     (url[0] == '"' and url[url.length - 1] == '"') or
@@ -14,7 +14,7 @@ module.exports = (url, main) ->
   main = main.split('#')[0]
 
   if url.startsWith('//')
-    return "https:" + url
+    return protocol + url
 
   if url.match(/^[\w\-_\d]+:/)
     return url

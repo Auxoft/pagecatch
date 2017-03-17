@@ -19,23 +19,19 @@ addNewActualUrls = (htmlText, actualUrls, source) ->
       actualUrls[convertURL(url[2], source)] = true
   return actualUrls
 
-module.exports = (src, element, source, dom, styleMas, callback) ->
+module.exports = (src, element, source, dom, attributes, callback) ->
   flag = false
   if src.indexOf("@import") > -1
-    re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi
-    re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi
-    src = src.replace(re_2, (str) ->
-      re_1 = /@import\s+url\(((['"])?[\s\S]*?\1)\)\;/gmi
-      re_2 = /@import\s+(['"]?[\s\S]*?\1)\;/gmi
-      if(str.indexOf('url') > -1)
-        temp = re_1.exec(str)
-        return getXHR(convertURL(temp[1], source))
-      else
-        temp = re_2.exec(str)
-        return getXHR(convertURL(temp[1], source))
+    re = /@import\s+(?:url\((['"])?([\s\S]*?)\1\)|(['"])?([\s\S]*?)\3)\s*[^;]*?(?:;|$)/gmi
+    src = src.replace(re, (str) ->
+      temp = re.exec(str)
+      if temp[2]?
+        return getXHR(convertURL(temp[2], source))
+      if temp[4]?
+        return getXHR(convertURL(temp[4], source))
     )
   if(src.indexOf("url(") < 0)
-    callback null, element, dom, src, styleMas
+    callback null, element, dom, src, attributes
   else
     #console.log "inline-css:", src, element
     urlMas = []
@@ -86,13 +82,13 @@ module.exports = (src, element, source, dom, styleMas, callback) ->
                   else
                     src.push '"'+ dom.actualUrls[urlMas[urlIndex]] + '"'
                 else
-                  src.push ""
+                  src.push '""'
               if(elemMas[index]?)
                 #console.log "SECOND_ELEM", elemMas[index]
                 src.push(elemMas[index])
               index++
               urlIndex++
-            callback null, element, dom, src.join(""), styleMas
+            callback null, element, dom, src.join(""), attributes
     if !flag
-      callback null, element, dom, elemMas.join(''), styleMas
+      callback null, element, dom, elemMas.join(''), attributes
 

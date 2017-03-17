@@ -167,7 +167,7 @@ getSource = () ->
   # Function returns iframe url, content, html-atributes,
   # iframe-selectors and iframe-path
   return [
-    document.URL,
+    [document.URL, document.location.protocol],
     document.documentElement.innerHTML,
     getAttribute(document.documentElement.attributes),
     getFramePath(),
@@ -198,17 +198,20 @@ getDocument = (htmlText, url) ->
   body = htmlObject[2]
   tempDoc = document.createElement('html')
   tempDoc.innerHTML = head+body
+  console.log tempDoc
   attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
   attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
   if htmlObject?
     _html.head.innerHTML = headRE.exec(head)[1]
     _html.head = deleteIframesFromHead(_html.head)
+    #console.log(_html)
     _html.body.innerHTML = bodyRE.exec(body)[1]
     for attribute in attributesBody
       _html.body.setAttribute attribute.name, attribute.value
     for attribute in attributesHead
       _html.head.setAttribute attribute.name, attribute.value
-  console.log _html.styleSheets
+  #console.log _html.styleSheets
+  #console.log _html
   return _html
 
 ###!
@@ -377,7 +380,7 @@ getPage = (tabID, cleanUp, done) ->
       tagsStyles = dom.document.querySelectorAll '*[style]'
       for tag in tagsStyles
         attributeCounter++
-        inlineCSS tag.getAttribute('style'), tag, dom.url, dom, [],
+        inlineCSS tag.getAttribute('style'), tag, dom.url[0], dom, [],
           (error, tag, dom, result) ->
             attributeCounter--
             if error?
@@ -392,10 +395,11 @@ getPage = (tabID, cleanUp, done) ->
           if (
             tag.getAttribute('rel') in ["stylesheet", "prefetch stylesheet"]
             )
-              href = convertURL(tag.getAttribute('href'), dom.url)
+              href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1])
+              attributes = tag.attributes
               #console.log "INLINECSSS_START",tag
-              inlineCSS getXHR(href), tag, href, dom, [],
-                (error, tag, dom, result) ->
+              inlineCSS getXHR(href), tag, href, dom, attributes,
+                (error, tag, dom, result,attributes) ->
                   tagCounter--
                   if error?
                     console.error "style error", error
@@ -405,6 +409,8 @@ getPage = (tabID, cleanUp, done) ->
                     #console.log result1
                     #console.log 'RESULT2', result2
                     style.innerHTML = result
+                    for attribute in attributes
+                      style.setAttribute attribute.name, attribute.value
                     parent = tag.parentElement
                     parent.insertBefore style, tag
                     parent.removeChild tag
@@ -415,7 +421,7 @@ getPage = (tabID, cleanUp, done) ->
               tagCounter--
               continue
             else
-              href = convertURL(tag.getAttribute('href'), dom.url)
+              href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1])
               xhrToBase64 href, tag, (error, tag, result) ->
                 tagCounter--
                 if error?
@@ -427,7 +433,7 @@ getPage = (tabID, cleanUp, done) ->
               continue
         if tag.nodeName == 'IMG'
           if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
-            src = convertURL tag.getAttribute('srcset'), dom.url
+            src = convertURL tag.getAttribute('srcset'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
@@ -437,7 +443,7 @@ getPage = (tabID, cleanUp, done) ->
               callback tagCounter, attributeCounter
             continue
           else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
-            src = convertURL tag.getAttribute('src'), dom.url
+            src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
@@ -448,7 +454,7 @@ getPage = (tabID, cleanUp, done) ->
             continue
           else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
             tag.setAttribute('srcset',"")
-            src = convertURL tag.getAttribute('src'), dom.url
+            src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
@@ -461,7 +467,7 @@ getPage = (tabID, cleanUp, done) ->
             tagCounter--
             continue
         if tag.nodeName == 'STYLE'
-          inlineCSS tag.innerHTML, tag, dom.url, dom, [],
+          inlineCSS tag.innerHTML, tag, dom.url[0], dom, [],
             (error, tag, dom, result) ->
               #console.log "INLINECSSS_END", tag
               tagCounter--
@@ -477,7 +483,7 @@ getPage = (tabID, cleanUp, done) ->
             tagCounter--
             continue
           else if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
-            src = convertURL tag.getAttribute('srcset'), dom.url
+            src = convertURL tag.getAttribute('srcset'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
@@ -487,7 +493,7 @@ getPage = (tabID, cleanUp, done) ->
               callback tagCounter, attributeCounter
             continue
           else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
-            src = convertURL tag.getAttribute('src'), dom.url
+            src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
@@ -498,7 +504,7 @@ getPage = (tabID, cleanUp, done) ->
             continue
           else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
             tag.setAttribute('srcset',"")
-            src = convertURL tag.getAttribute('src'), dom.url
+            src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
             xhrToBase64 src, tag, (error, tag, result) ->
               tagCounter--
               if error?
