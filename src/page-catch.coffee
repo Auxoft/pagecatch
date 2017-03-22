@@ -362,8 +362,53 @@ getPage = (tabID, cleanUp, done) ->
     for meta in metas
       if meta.getAttribute('name') == 'original-url'
         flag = true
-        callback 0, 0
+        callback 0, 0, 0
         return
+    faviconLinks = []
+    links = dictionary[""]?.document.querySelectorAll 'link'
+    iconFlag = false
+    iconCounter = 0
+    for link in links
+      rel = link.getAttribute('rel')
+      if rel.indexOf('icon') != -1
+        if rel == 'icon'
+          iconFlag = true
+        faviconLinks.push(link)
+    if not iconFlag
+      url = dictionary[""]?.url[0]
+      urlMas = url.split('/')
+      urlMas = urlMas.slice(0,3)
+      url = urlMas.join('/') + '/favicon.ico'
+      link = document.createElement 'link'
+      link.setAttribute 'rel','icon'
+      iconCounter = 1
+      xhrToBase64 url, link, (error, tag, result) ->
+        if error?
+          iconCounter--
+          console.error "(src)Base 64 error:", error.stack
+        else
+          if result == ""
+            iconCounter++
+            if (faviconLinks.length != 0)
+              href = faviconLinks[0].getAttribute('href')
+            else
+              iconCounter--
+            callback tagCounter, attributeCounter, iconCounter
+            xhrToBase64 href, tag, (error, tag, result) ->
+              if error?
+                iconCounter--
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "href", result
+                dictionary[""].document.head.appendChild(tag)
+                iconCounter--
+              callback tagCounter, attributeCounter, iconCounter
+          else
+            tag.setAttribute "href", result
+            dictionary[""].document.head.appendChild(tag)
+            iconCounter--
+          callback tagCounter, attributeCounter, iconCounter
+
     attributeCounter = 0
     tagCounter = 0
     for key, dom of dictionary
@@ -387,7 +432,7 @@ getPage = (tabID, cleanUp, done) ->
               console.error "Style attr error", error
             else
               tag.setAttribute('style', result)
-            callback tagCounter, attributeCounter
+            callback tagCounter, attributeCounter, iconCounter
       tags = dom.document.querySelectorAll 'img,link,source,style'
       for tag in tags
         tagCounter++
@@ -414,7 +459,7 @@ getPage = (tabID, cleanUp, done) ->
                     parent = tag.parentElement
                     parent.insertBefore style, tag
                     parent.removeChild tag
-                  callback tagCounter, attributeCounter
+                  callback tagCounter, attributeCounter, iconCounter
               continue
             else if tag.getAttribute('rel') in badLinksRel
               tag.parentElement.removeChild(tag)
@@ -429,7 +474,7 @@ getPage = (tabID, cleanUp, done) ->
                     error.stack
                 else
                   tag.setAttribute "href", result
-                callback tagCounter, attributeCounter
+                callback tagCounter, attributeCounter, iconCounter
               continue
         if tag.nodeName == 'IMG'
           if tag.hasAttribute('srcset') and not tag.hasAttribute('src')
@@ -440,7 +485,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "srcset", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
             src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
@@ -450,7 +495,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "src", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
             tag.setAttribute('srcset',"")
@@ -461,7 +506,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "src", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else
             tagCounter--
@@ -476,7 +521,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error tag.innerHTML
               else
                 tag.innerHTML = result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
           continue
         if tag.nodeName == 'SOURCE'
           if tag.type.indexOf('video') > -1 || tag.type.indexOf('audio') > -1
@@ -490,7 +535,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "srcset", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else if (tag.hasAttribute('src') and not tag.hasAttribute('srcset'))
             src = convertURL tag.getAttribute('src'), dom.url[0], dom.url[1]
@@ -500,7 +545,7 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "src", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else if tag.hasAttribute('src') and tag.hasAttribute('srcset')
             tag.setAttribute('srcset',"")
@@ -511,13 +556,13 @@ getPage = (tabID, cleanUp, done) ->
                 console.error "(src)Base 64 error:", error.stack
               else
                 tag.setAttribute "src", result
-              callback tagCounter, attributeCounter
+              callback tagCounter, attributeCounter, iconCounter
             continue
           else
             tagCounter--
             continue
     flag = true
-    callback tagCounter, attributeCounter
+    callback tagCounter, attributeCounter, iconCounter
   ###!
   # create one object from dictionary of frames
   # @param {Object} obj - obj of dictionary(any frame from page)
@@ -554,9 +599,9 @@ getPage = (tabID, cleanUp, done) ->
   # @param {Number} counter - counter of tags
   # @param {Number} counter1 - counter of attributes
   ###
-  finalize = (counter, counter1) ->
-    console.log counter, counter1, flag
-    if counter == 0 and counter1 == 0 and flag == true
+  finalize = (counter, counter1, counter2) ->
+    console.log counter, counter1, counter2, flag
+    if counter == 0 and counter1 == 0 and counter2 == 0 and flag == true
       createNewObj dictionary[""],""
       _url = dictionary[""].url
       _document = dictionary[""].document

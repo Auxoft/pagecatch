@@ -952,15 +952,71 @@
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var _style, attributeCounter, attributes, dom, href, j, k, key, l, len, len1, len2, len3, len4, m, meta, metas, n, ref, ref1, ref2, ref3, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles;
+	    var _style, attributeCounter, attributes, dom, faviconLinks, href, iconCounter, iconFlag, j, k, key, l, len, len1, len2, len3, len4, len5, link, links, m, meta, metas, n, o, ref, ref1, ref2, ref3, ref4, ref5, rel, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles, url, urlMas;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
 	      if (meta.getAttribute('name') === 'original-url') {
 	        flag = true;
-	        callback(0, 0);
+	        callback(0, 0, 0);
 	        return;
 	      }
+	    }
+	    faviconLinks = [];
+	    links = (ref1 = dictionary[""]) != null ? ref1.document.querySelectorAll('link') : void 0;
+	    iconFlag = false;
+	    iconCounter = 0;
+	    for (k = 0, len1 = links.length; k < len1; k++) {
+	      link = links[k];
+	      rel = link.getAttribute('rel');
+	      if (rel.indexOf('icon') !== -1) {
+	        if (rel === 'icon') {
+	          iconFlag = true;
+	        }
+	        faviconLinks.push(link);
+	      }
+	    }
+	    if (!iconFlag) {
+	      url = (ref2 = dictionary[""]) != null ? ref2.url[0] : void 0;
+	      urlMas = url.split('/');
+	      urlMas = urlMas.slice(0, 3);
+	      url = urlMas.join('/') + '/favicon.ico';
+	      link = document.createElement('link');
+	      link.setAttribute('rel', 'icon');
+	      iconCounter = 1;
+	      xhrToBase64(url, link, function(error, tag, result) {
+	        var href;
+	        if (error != null) {
+	          iconCounter--;
+	          return console.error("(src)Base 64 error:", error.stack);
+	        } else {
+	          if (result === "") {
+	            iconCounter++;
+	            if (faviconLinks.length !== 0) {
+	              href = faviconLinks[0].getAttribute('href');
+	            } else {
+	              iconCounter--;
+	            }
+	            callback(tagCounter, attributeCounter, iconCounter);
+	            xhrToBase64(href, tag, function(error, tag, result) {
+	              if (error != null) {
+	                iconCounter--;
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("href", result);
+	                dictionary[""].document.head.appendChild(tag);
+	                iconCounter--;
+	              }
+	              return callback(tagCounter, attributeCounter, iconCounter);
+	            });
+	          } else {
+	            tag.setAttribute("href", result);
+	            dictionary[""].document.head.appendChild(tag);
+	            iconCounter--;
+	          }
+	          return callback(tagCounter, attributeCounter, iconCounter);
+	        }
+	      });
 	    }
 	    attributeCounter = 0;
 	    tagCounter = 0;
@@ -969,13 +1025,13 @@
 	      dom.document.head = deleteElemsFromHead(dom.document.head);
 	      console.log(dom.document);
 	      styleTags = dom.document.querySelectorAll('style');
-	      for (k = 0, len1 = styleTags.length; k < len1; k++) {
-	        style = styleTags[k];
+	      for (l = 0, len2 = styleTags.length; l < len2; l++) {
+	        style = styleTags[l];
 	        if (style.innerHTML.length === 0) {
 	          selector = createSelector(style);
-	          ref1 = dom.styleSheets;
-	          for (l = 0, len2 = ref1.length; l < len2; l++) {
-	            _style = ref1[l];
+	          ref3 = dom.styleSheets;
+	          for (m = 0, len3 = ref3.length; m < len3; m++) {
+	            _style = ref3[m];
 	            if (_style[1] === selector) {
 	              style.innerHTML = _style[0];
 	              break;
@@ -984,8 +1040,8 @@
 	        }
 	      }
 	      tagsStyles = dom.document.querySelectorAll('*[style]');
-	      for (m = 0, len3 = tagsStyles.length; m < len3; m++) {
-	        tag = tagsStyles[m];
+	      for (n = 0, len4 = tagsStyles.length; n < len4; n++) {
+	        tag = tagsStyles[n];
 	        attributeCounter++;
 	        inlineCSS(tag.getAttribute('style'), tag, dom.url[0], dom, [], function(error, tag, dom, result) {
 	          attributeCounter--;
@@ -994,19 +1050,19 @@
 	          } else {
 	            tag.setAttribute('style', result);
 	          }
-	          return callback(tagCounter, attributeCounter);
+	          return callback(tagCounter, attributeCounter, iconCounter);
 	        });
 	      }
 	      tags = dom.document.querySelectorAll('img,link,source,style');
-	      for (n = 0, len4 = tags.length; n < len4; n++) {
-	        tag = tags[n];
+	      for (o = 0, len5 = tags.length; o < len5; o++) {
+	        tag = tags[o];
 	        tagCounter++;
 	        if (tag.nodeName === 'LINK') {
-	          if (((ref2 = tag.getAttribute('rel')) === "stylesheet" || ref2 === "prefetch stylesheet")) {
+	          if (((ref4 = tag.getAttribute('rel')) === "stylesheet" || ref4 === "prefetch stylesheet")) {
 	            href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1]);
 	            attributes = tag.attributes;
 	            inlineCSS(getXHR(href), tag, href, dom, attributes, function(error, tag, dom, result, attributes) {
-	              var attribute, len5, o, parent;
+	              var attribute, len6, p, parent;
 	              tagCounter--;
 	              if (error != null) {
 	                console.error("style error", error);
@@ -1014,18 +1070,18 @@
 	                console.log('INLINECSSS_END', tag);
 	                style = document.createElement('style');
 	                style.innerHTML = result;
-	                for (o = 0, len5 = attributes.length; o < len5; o++) {
-	                  attribute = attributes[o];
+	                for (p = 0, len6 = attributes.length; p < len6; p++) {
+	                  attribute = attributes[p];
 	                  style.setAttribute(attribute.name, attribute.value);
 	                }
 	                parent = tag.parentElement;
 	                parent.insertBefore(style, tag);
 	                parent.removeChild(tag);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
-	          } else if (ref3 = tag.getAttribute('rel'), indexOf.call(badLinksRel, ref3) >= 0) {
+	          } else if (ref5 = tag.getAttribute('rel'), indexOf.call(badLinksRel, ref5) >= 0) {
 	            tag.parentElement.removeChild(tag);
 	            tagCounter--;
 	            continue;
@@ -1038,7 +1094,7 @@
 	              } else {
 	                tag.setAttribute("href", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          }
@@ -1053,7 +1109,7 @@
 	              } else {
 	                tag.setAttribute("srcset", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
@@ -1065,7 +1121,7 @@
 	              } else {
 	                tag.setAttribute("src", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
@@ -1078,7 +1134,7 @@
 	              } else {
 	                tag.setAttribute("src", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else {
@@ -1095,7 +1151,7 @@
 	            } else {
 	              tag.innerHTML = result;
 	            }
-	            return callback(tagCounter, attributeCounter);
+	            return callback(tagCounter, attributeCounter, iconCounter);
 	          });
 	          continue;
 	        }
@@ -1112,7 +1168,7 @@
 	              } else {
 	                tag.setAttribute("srcset", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && !tag.hasAttribute('srcset')) {
@@ -1124,7 +1180,7 @@
 	              } else {
 	                tag.setAttribute("src", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else if (tag.hasAttribute('src') && tag.hasAttribute('srcset')) {
@@ -1137,7 +1193,7 @@
 	              } else {
 	                tag.setAttribute("src", result);
 	              }
-	              return callback(tagCounter, attributeCounter);
+	              return callback(tagCounter, attributeCounter, iconCounter);
 	            });
 	            continue;
 	          } else {
@@ -1148,7 +1204,7 @@
 	      }
 	    }
 	    flag = true;
-	    return callback(tagCounter, attributeCounter);
+	    return callback(tagCounter, attributeCounter, iconCounter);
 	  };
 	
 	  /*!
@@ -1195,10 +1251,10 @@
 	   * @param {Number} counter - counter of tags
 	   * @param {Number} counter1 - counter of attributes
 	   */
-	  finalize = function(counter, counter1) {
+	  finalize = function(counter, counter1, counter2) {
 	    var _document, _url, result;
-	    console.log(counter, counter1, flag);
-	    if (counter === 0 && counter1 === 0 && flag === true) {
+	    console.log(counter, counter1, counter2, flag);
+	    if (counter === 0 && counter1 === 0 && counter2 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
 	      _url = dictionary[""].url;
 	      _document = dictionary[""].document;
