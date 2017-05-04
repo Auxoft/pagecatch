@@ -44,7 +44,7 @@ getSource = () ->
         for rule in style.rules
           str+= rule.cssText
         stylesheetsArray.push [str,createSelector(style.ownerNode)]
-    console.log stylesheetsArray
+    # console.log stylesheetsArray
   getCssRulesForTagStyle(document.styleSheets)
 
 
@@ -54,13 +54,13 @@ getSource = () ->
       while startIndex > -1
         endIndex = styleObj[elem].indexOf(')', startIndex + 1)
         key = styleObj[elem].substring(startIndex + 4, endIndex)
-        console.log "URL::", key
+        # console.log "URL::", key
         if key.startsWith('"') or key.startsWith("'")
           key = key.substring(1, key.length - 1)
         if not key.startsWith('#')
           linksObj[key] = true
-          console.assert linksObj[key]
-          console.log 'ELEM', key
+          # console.assert linksObj[key]
+          # console.log 'ELEM', key
         startIndex = styleObj[elem].indexOf('url(', endIndex + 1)
 
   passOnTree = (elem) ->
@@ -198,7 +198,7 @@ getDocument = (htmlText, url) ->
   body = htmlObject[2]
   tempDoc = document.createElement('html')
   tempDoc.innerHTML = head+body
-  console.log tempDoc
+  # console.log tempDoc
   attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
   attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
   if htmlObject?
@@ -370,7 +370,7 @@ getPage = (tabID, cleanUp, done) ->
     iconCounter = 0
     for link in links
       rel = link.getAttribute('rel')
-      if rel.indexOf('icon') != -1
+      if rel != null and rel.indexOf('icon') != -1 
         if rel == 'icon'
           iconFlag = true
         faviconLinks.push(link)
@@ -413,7 +413,7 @@ getPage = (tabID, cleanUp, done) ->
     tagCounter = 0
     for key, dom of dictionary
       dom.document.head = deleteElemsFromHead(dom.document.head)
-      console.log dom.document
+      # console.log dom.document
       styleTags = dom.document.querySelectorAll 'style'
       for style in styleTags
         if style.innerHTML.length == 0
@@ -433,7 +433,7 @@ getPage = (tabID, cleanUp, done) ->
             else
               tag.setAttribute('style', result)
             callback tagCounter, attributeCounter, iconCounter
-      tags = dom.document.querySelectorAll 'img,link,source,style'
+      tags = dom.document.querySelectorAll 'img,link,source,style, object'
       for tag in tags
         tagCounter++
         if tag.nodeName == 'LINK'
@@ -511,6 +511,20 @@ getPage = (tabID, cleanUp, done) ->
           else
             tagCounter--
             continue
+        if tag.nodeName == 'OBJECT'
+          if tag.hasAttribute('data')
+            src = convertURL tag.getAttribute('data'), dom.url[0], dom.url[1]
+            xhrToBase64 src, tag, (error, tag, result) ->
+              tagCounter--
+              if error?
+                console.error "(src)Base 64 error:", error.stack
+              else
+                tag.setAttribute "srcset", result
+              callback tagCounter, attributeCounter, iconCounter
+            continue
+          else
+            tagCounter--
+            continue
         if tag.nodeName == 'STYLE'
           inlineCSS tag.innerHTML, tag, dom.url[0], dom, [],
             (error, tag, dom, result) ->
@@ -518,7 +532,7 @@ getPage = (tabID, cleanUp, done) ->
               tagCounter--
               if error?
                 console.error "(style)inlineCSS error:", error.stack
-                console.error tag.innerHTML
+                # console.error tag.innerHTML
               else
                 tag.innerHTML = result
               callback tagCounter, attributeCounter, iconCounter
@@ -561,6 +575,9 @@ getPage = (tabID, cleanUp, done) ->
           else
             tagCounter--
             continue
+        else
+          tagCounter--
+          continue
     flag = true
     callback tagCounter, attributeCounter, iconCounter
   ###!

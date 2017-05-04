@@ -98,7 +98,8 @@ var getPage =
 	    return selector;
 	  };
 	  getCssRulesForTagStyle = function(stylesheets) {
-	    var j, k, len, len1, ref, rule, str, style;
+	    var j, k, len, len1, ref, results, rule, str, style;
+	    results = [];
 	    for (j = 0, len = stylesheets.length; j < len; j++) {
 	      style = stylesheets[j];
 	      str = "";
@@ -108,10 +109,12 @@ var getPage =
 	          rule = ref[k];
 	          str += rule.cssText;
 	        }
-	        stylesheetsArray.push([str, createSelector(style.ownerNode)]);
+	        results.push(stylesheetsArray.push([str, createSelector(style.ownerNode)]));
+	      } else {
+	        results.push(void 0);
 	      }
 	    }
-	    return console.log(stylesheetsArray);
+	    return results;
 	  };
 	  getCssRulesForTagStyle(document.styleSheets);
 	  getUrlMas = function(styleObj) {
@@ -126,14 +129,11 @@ var getPage =
 	        while (startIndex > -1) {
 	          endIndex = styleObj[elem].indexOf(')', startIndex + 1);
 	          key = styleObj[elem].substring(startIndex + 4, endIndex);
-	          console.log("URL::", key);
 	          if (key.startsWith('"') || key.startsWith("'")) {
 	            key = key.substring(1, key.length - 1);
 	          }
 	          if (!key.startsWith('#')) {
 	            linksObj[key] = true;
-	            console.assert(linksObj[key]);
-	            console.log('ELEM', key);
 	          }
 	          results1.push(startIndex = styleObj[elem].indexOf('url(', endIndex + 1));
 	        }
@@ -300,7 +300,6 @@ var getPage =
 	  body = htmlObject[2];
 	  tempDoc = document.createElement('html');
 	  tempDoc.innerHTML = head + body;
-	  console.log(tempDoc);
 	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
 	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
 	  if (htmlObject != null) {
@@ -535,7 +534,7 @@ var getPage =
 	    for (k = 0, len1 = links.length; k < len1; k++) {
 	      link = links[k];
 	      rel = link.getAttribute('rel');
-	      if (rel.indexOf('icon') !== -1) {
+	      if (rel !== null && rel.indexOf('icon') !== -1) {
 	        if (rel === 'icon') {
 	          iconFlag = true;
 	        }
@@ -589,7 +588,6 @@ var getPage =
 	    for (key in dictionary) {
 	      dom = dictionary[key];
 	      dom.document.head = deleteElemsFromHead(dom.document.head);
-	      console.log(dom.document);
 	      styleTags = dom.document.querySelectorAll('style');
 	      for (l = 0, len2 = styleTags.length; l < len2; l++) {
 	        style = styleTags[l];
@@ -619,7 +617,7 @@ var getPage =
 	          return callback(tagCounter, attributeCounter, iconCounter);
 	        });
 	      }
-	      tags = dom.document.querySelectorAll('img,link,source,style');
+	      tags = dom.document.querySelectorAll('img,link,source,style, object');
 	      for (o = 0, len5 = tags.length; o < len5; o++) {
 	        tag = tags[o];
 	        tagCounter++;
@@ -708,12 +706,29 @@ var getPage =
 	            continue;
 	          }
 	        }
+	        if (tag.nodeName === 'OBJECT') {
+	          if (tag.hasAttribute('data')) {
+	            src = convertURL(tag.getAttribute('data'), dom.url[0], dom.url[1]);
+	            xhrToBase64(src, tag, function(error, tag, result) {
+	              tagCounter--;
+	              if (error != null) {
+	                console.error("(src)Base 64 error:", error.stack);
+	              } else {
+	                tag.setAttribute("srcset", result);
+	              }
+	              return callback(tagCounter, attributeCounter, iconCounter);
+	            });
+	            continue;
+	          } else {
+	            tagCounter--;
+	            continue;
+	          }
+	        }
 	        if (tag.nodeName === 'STYLE') {
 	          inlineCSS(tag.innerHTML, tag, dom.url[0], dom, [], function(error, tag, dom, result) {
 	            tagCounter--;
 	            if (error != null) {
 	              console.error("(style)inlineCSS error:", error.stack);
-	              console.error(tag.innerHTML);
 	            } else {
 	              tag.innerHTML = result;
 	            }
@@ -766,6 +781,9 @@ var getPage =
 	            tagCounter--;
 	            continue;
 	          }
+	        } else {
+	          tagCounter--;
+	          continue;
 	        }
 	      }
 	    }
@@ -870,7 +888,6 @@ var getPage =
 	
 	xhrToBase64 = function(url, elem, callback) {
 	  var reader, xhr;
-	  console.log("BASE64URL", url);
 	  if (url.indexOf("data:") >= 0 || url.length < 10) {
 	    return callback(null, elem, url);
 	  } else {
@@ -1050,24 +1067,20 @@ var getPage =
 	    }
 	    elemMas.push(src.slice(lastIndex));
 	    dom.actualUrls = addNewActualUrls(src, dom.actualUrls, source);
-	    console.log("MASIVE", urlMas, dom.actualUrls);
 	    counter = getCounter(urlMas, dom.actualUrls);
 	    for (i = j = 0, ref = urlMas.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
 	      if (dom.actualUrls[urlMas[i]]) {
 	        flag = true;
 	        dom.actualUrls[urlMas[i]];
-	        console.log('COUNTER++', counter);
 	        convertToBase64(urlMas[i], element, function(error, obj, result, url) {
 	          var index, urlIndex;
 	          counter--;
-	          console.log(counter);
 	          if (error != null) {
 	            console.error("Error base64:", error.stack);
 	          } else {
 	            dom.actualUrls[url] = result;
 	          }
 	          if (counter === 0) {
-	            console.log(dom.actualUrls);
 	            src = [];
 	            index = 0;
 	            urlIndex = 0;

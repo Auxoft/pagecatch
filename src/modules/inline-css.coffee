@@ -52,22 +52,22 @@ module.exports = (src, element, source, dom, attributes, callback) ->
         break
     elemMas.push src[lastIndex..]
     dom.actualUrls = addNewActualUrls(src,dom.actualUrls, source)
-    console.log "MASIVE", urlMas, dom.actualUrls
+    # console.log "MASIVE", urlMas, dom.actualUrls
     counter = getCounter(urlMas, dom.actualUrls)
     for i in [0...urlMas.length]
       if dom.actualUrls[urlMas[i]]
         flag = true
         dom.actualUrls[urlMas[i]]
-        console.log 'COUNTER++',counter
+        # console.log 'COUNTER++',counter
         convertToBase64 urlMas[i], element, (error, obj, result, url) ->
           counter--
-          console.log counter
+          # console.log counter
           if error?
             console.error "Error base64:", error.stack
           else
             dom.actualUrls[url] = result
           if counter == 0
-            console.log dom.actualUrls
+            # console.log dom.actualUrls
             src = []
             index = 0
             urlIndex = 0
