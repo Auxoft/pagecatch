@@ -361,7 +361,10 @@ getPage = (tabID, cleanUp, done) ->
     metas = dictionary[""]?.document.querySelectorAll '[name]'
     for meta in metas
       if meta.getAttribute('name') == 'original-url'
-        done(dictionary[""].text);
+        result = getAttribute(
+          dictionary[""].header, dictionary[""].doctype
+        ) + dictionary[""].text + "</html>"
+        done?(result)
         return
     faviconLinks = []
     links = dictionary[""]?.document.querySelectorAll 'link'
@@ -601,8 +604,8 @@ getPage = (tabID, cleanUp, done) ->
         createNewObj dictionary[key], key+":"
         _url = dictionary[key].url
         _document = dictionary[key].document
-        defaultCleanUp _document, _url
-        cleanUp?(_document, _url)
+        defaultCleanUp _document, _url[0]
+        cleanUp?(_document, _url[0])
         source = getAttribute(
           dictionary[key].header,
           dictionary[key].doctype
@@ -621,7 +624,7 @@ getPage = (tabID, cleanUp, done) ->
       createNewObj dictionary[""],""
       _url = dictionary[""].url
       _document = dictionary[""].document
-      defaultCleanUp _document, _url
+      defaultCleanUp _document, _url[0]
       cleanUp?(_document, _url)
       result = getAttribute(
         dictionary[""].header, dictionary[""].doctype

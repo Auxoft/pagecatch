@@ -517,12 +517,15 @@ var getPage =
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var _style, attributeCounter, attributes, dom, faviconLinks, href, iconCounter, iconFlag, j, k, key, l, len, len1, len2, len3, len4, len5, link, links, m, meta, metas, n, o, ref, ref1, ref2, ref3, ref4, ref5, rel, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles, url, urlMas;
+	    var _style, attributeCounter, attributes, dom, faviconLinks, href, iconCounter, iconFlag, j, k, key, l, len, len1, len2, len3, len4, len5, link, links, m, meta, metas, n, o, ref, ref1, ref2, ref3, ref4, ref5, rel, result, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles, url, urlMas;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
 	      if (meta.getAttribute('name') === 'original-url') {
-	        done(dictionary[""].text);
+	        result = getAttribute(dictionary[""].header, dictionary[""].doctype) + dictionary[""].text + "</html>";
+	        if (typeof done === "function") {
+	          done(result);
+	        }
 	        return;
 	      }
 	    }
@@ -816,9 +819,9 @@ var getPage =
 	        createNewObj(dictionary[key], key + ":");
 	        _url = dictionary[key].url;
 	        _document = dictionary[key].document;
-	        defaultCleanUp(_document, _url);
+	        defaultCleanUp(_document, _url[0]);
 	        if (typeof cleanUp === "function") {
-	          cleanUp(_document, _url);
+	          cleanUp(_document, _url[0]);
 	        }
 	        source = getAttribute(dictionary[key].header, dictionary[key].doctype) + _document.documentElement.innerHTML + "</html>";
 	        results.push(frame.setAttribute('srcdoc', source));
@@ -841,7 +844,7 @@ var getPage =
 	      createNewObj(dictionary[""], "");
 	      _url = dictionary[""].url;
 	      _document = dictionary[""].document;
-	      defaultCleanUp(_document, _url);
+	      defaultCleanUp(_document, _url[0]);
 	      if (typeof cleanUp === "function") {
 	        cleanUp(_document, _url);
 	      }
