@@ -522,8 +522,7 @@ var getPage =
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
 	      if (meta.getAttribute('name') === 'original-url') {
-	        flag = true;
-	        callback(0, 0, 0);
+	        done(dictionary[""].text);
 	        return;
 	      }
 	    }
@@ -869,7 +868,8 @@ var getPage =
 	        framesIdx: dom[4],
 	        doctype: dom[5],
 	        actualUrls: dom[6],
-	        styleSheets: dom[7]
+	        styleSheets: dom[7],
+	        text: dom[1]
 	      };
 	      dictionary[dom[3]] = obj;
 	    }
@@ -1036,6 +1036,9 @@ var getPage =
 	    src = src.replace(re, function(str) {
 	      var temp;
 	      temp = re.exec(str);
+	      if (temp == null) {
+	        return "";
+	      }
 	      if (temp[2] != null) {
 	        return getXHR(convertURL(temp[2], source));
 	      }

@@ -25,6 +25,8 @@ module.exports = (src, element, source, dom, attributes, callback) ->
     re = /@import\s+(?:url\((['"])?([\s\S]*?)\1\)|(['"])?([\s\S]*?)\3)\s*[^;]*?(?:;|$)/gmi
     src = src.replace(re, (str) ->
       temp = re.exec(str)
+      if not temp?
+        return ""
       if temp[2]?
         return getXHR(convertURL(temp[2], source))
       if temp[4]?

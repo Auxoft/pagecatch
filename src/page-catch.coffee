@@ -361,8 +361,7 @@ getPage = (tabID, cleanUp, done) ->
     metas = dictionary[""]?.document.querySelectorAll '[name]'
     for meta in metas
       if meta.getAttribute('name') == 'original-url'
-        flag = true
-        callback 0, 0, 0
+        done(dictionary[""].text);
         return
     faviconLinks = []
     links = dictionary[""]?.document.querySelectorAll 'link'
@@ -370,7 +369,7 @@ getPage = (tabID, cleanUp, done) ->
     iconCounter = 0
     for link in links
       rel = link.getAttribute('rel')
-      if rel != null and rel.indexOf('icon') != -1 
+      if rel != null and rel.indexOf('icon') != -1
         if rel == 'icon'
           iconFlag = true
         faviconLinks.push(link)
@@ -652,6 +651,7 @@ getPage = (tabID, cleanUp, done) ->
         doctype: dom[5]
         actualUrls: dom[6]
         styleSheets: dom[7]
+        text: dom[1]
       dictionary[dom[3]] = obj
       #console.log dom[6]
     parse(finalize)
