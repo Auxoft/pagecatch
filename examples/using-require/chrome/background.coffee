@@ -124,7 +124,7 @@ deleteNoScripts = (document) ->
   return document
 
 cleanUp = (document, url) ->
-  deleteNoScripts(document)
+  # deleteNoScripts(document)
   deleteScripts(document)
   deleteMeta(document)
   clearOnEventAttribs(document)

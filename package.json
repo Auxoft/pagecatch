@@ -1,6 +1,6 @@
 {
   "name": "pagecatch",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Chrome extension library for saving current webpage state into one html file including all resources",
   "main": "index.js",
   "scripts": {

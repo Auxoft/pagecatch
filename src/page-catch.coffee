@@ -168,7 +168,7 @@ getSource = () ->
   # iframe-selectors and iframe-path
   return [
     [document.URL, document.location.protocol],
-    document.documentElement.innerHTML,
+    [document.head.outerHTML, document.body.outerHTML],
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
@@ -185,33 +185,14 @@ deleteIframesFromHead = (head) ->
   return head
 ###!
 # convert html text of every frame to DOM-Tree
-# @param {string} htmlText - string with html code
+# @param {string} head - string with html code of head
+# @param {string} body - string with html code of body
 # @return {HTMLDocument} - created DOM with string
 ###
-getDocument = (htmlText, url) ->
+getDocument = (head,body) ->
   _html = document.implementation.createHTMLDocument()
-  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
-  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
-  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
-  htmlObject = regExp.exec(htmlText)
-  head = htmlObject[1]
-  body = htmlObject[2]
-  tempDoc = document.createElement('html')
-  tempDoc.innerHTML = head+body
-  # console.log tempDoc
-  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
-  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
-  if htmlObject?
-    _html.head.innerHTML = headRE.exec(head)[1]
-    _html.head = deleteIframesFromHead(_html.head)
-    #console.log(_html)
-    _html.body.innerHTML = bodyRE.exec(body)[1]
-    for attribute in attributesBody
-      _html.body.setAttribute attribute.name, attribute.value
-    for attribute in attributesHead
-      _html.head.setAttribute attribute.name, attribute.value
-  #console.log _html.styleSheets
-  #console.log _html
+  _html.head.innerHTML = head
+  _html.body.outerHTML = body
   return _html
 
 ###!
@@ -272,12 +253,32 @@ addMeta = (DOM, url)->
     )
     head.insertBefore meta, head.children[0]
 
+
+decode = (text) ->
+  if (text.indexOf('&amp;') >=0 or text.indexOf('&quot;')>=0 or text.indexOf('&gt;')>=0 or text.indexOf('&lt;')>=0)
+    text = text.replace(/\&amp\;/g, '&')
+    text = text.replace(/\&quot\;/g, '"')
+    text = text.replace(/\&lt\;/g, '<')
+    text = text.replace(/\&gt\;/g, '>')
+    text = decode(text)
+    decode(text)
+  return text
+
+
+decodeNoScript = (document)->
+  noscripts = document.getElementsByTagName('noscript')
+  for script in noscripts
+    script.outerHTML = decode(script.outerHTML)
+  return document
+    
+
 ###!
 # run functions for delete security policy
 # @param {HTMLDocument} - DOM of current document
 # @param {String} - string with url of current iframe
 ###
 defaultCleanUp = (document,url) ->
+  decodeNoScript(document)
   deleteMeta(document)
   deleteSendBoxAttrib(document)
   addMeta(document,url)
@@ -361,10 +362,8 @@ getPage = (tabID, cleanUp, done) ->
     metas = dictionary[""]?.document.querySelectorAll '[name]'
     for meta in metas
       if meta.getAttribute('name') == 'original-url'
-        result = getAttribute(
-          dictionary[""].header, dictionary[""].doctype
-        ) + dictionary[""].text + "</html>"
-        done?(result)
+        flag = true
+        callback 0,0,0
         return
     faviconLinks = []
     links = dictionary[""]?.document.querySelectorAll 'link'
@@ -649,12 +648,11 @@ getPage = (tabID, cleanUp, done) ->
       obj =
         url: dom[0]
         header: dom[2]
-        document: getDocument(dom[1],dom[0])
+        document: getDocument(dom[1][0],dom[1][1])
         framesIdx: dom[4]
         doctype: dom[5]
         actualUrls: dom[6]
         styleSheets: dom[7]
-        text: dom[1]
       dictionary[dom[3]] = obj
       #console.log dom[6]
     parse(finalize)

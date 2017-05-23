@@ -44,7 +44,7 @@ module.exports = (src, element, source, dom, attributes, callback) ->
     obj = regExp.exec(src)
     while obj?
       elemMas.push obj[1], obj[4]
-      urlMas.push convertURL obj[3], source
+      urlMas.push convertURL obj[3], source, (new URL(source)).protocol
       lastIndex = regExp.lastIndex
       if src.indexOf('url(',lastIndex+1) > -1
         obj = regExp.exec(src)

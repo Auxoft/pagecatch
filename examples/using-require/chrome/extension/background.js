@@ -198,7 +198,6 @@
 	};
 	
 	cleanUp = function(document, url) {
-	  deleteNoScripts(document);
 	  deleteScripts(document);
 	  deleteMeta(document);
 	  clearOnEventAttribs(document);
@@ -479,7 +478,7 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, defaultCleanUp, deleteElemsFromHead, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
+	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, decode, decodeNoScript, defaultCleanUp, deleteElemsFromHead, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
 	  hasProp = {}.hasOwnProperty,
 	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -703,7 +702,7 @@
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], document.documentElement.innerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], [document.head.outerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -719,36 +718,16 @@
 	
 	/*!
 	 * convert html text of every frame to DOM-Tree
-	 * @param {string} htmlText - string with html code
+	 * @param {string} head - string with html code of head
+	 * @param {string} body - string with html code of body
 	 * @return {HTMLDocument} - created DOM with string
 	 */
 	
-	getDocument = function(htmlText, url) {
-	  var _html, attribute, attributesBody, attributesHead, body, bodyRE, head, headRE, htmlObject, j, k, len, len1, regExp, tempDoc;
+	getDocument = function(head, body) {
+	  var _html;
 	  _html = document.implementation.createHTMLDocument();
-	  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi;
-	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
-	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
-	  htmlObject = regExp.exec(htmlText);
-	  head = htmlObject[1];
-	  body = htmlObject[2];
-	  tempDoc = document.createElement('html');
-	  tempDoc.innerHTML = head + body;
-	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
-	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
-	  if (htmlObject != null) {
-	    _html.head.innerHTML = headRE.exec(head)[1];
-	    _html.head = deleteIframesFromHead(_html.head);
-	    _html.body.innerHTML = bodyRE.exec(body)[1];
-	    for (j = 0, len = attributesBody.length; j < len; j++) {
-	      attribute = attributesBody[j];
-	      _html.body.setAttribute(attribute.name, attribute.value);
-	    }
-	    for (k = 0, len1 = attributesHead.length; k < len1; k++) {
-	      attribute = attributesHead[k];
-	      _html.head.setAttribute(attribute.name, attribute.value);
-	    }
-	  }
+	  _html.head.innerHTML = head;
+	  _html.body.outerHTML = body;
 	  return _html;
 	};
 	
@@ -831,6 +810,28 @@
 	  }
 	};
 	
+	decode = function(text) {
+	  if (text.indexOf('&amp;') >= 0 || text.indexOf('&quot;') >= 0 || text.indexOf('&gt;') >= 0 || text.indexOf('&lt;') >= 0) {
+	    text = text.replace(/\&amp\;/g, '&');
+	    text = text.replace(/\&quot\;/g, '"');
+	    text = text.replace(/\&lt\;/g, '<');
+	    text = text.replace(/\&gt\;/g, '>');
+	    text = decode(text);
+	    decode(text);
+	  }
+	  return text;
+	};
+	
+	decodeNoScript = function(document) {
+	  var j, len, noscripts, script;
+	  noscripts = document.getElementsByTagName('noscript');
+	  for (j = 0, len = noscripts.length; j < len; j++) {
+	    script = noscripts[j];
+	    script.outerHTML = decode(script.outerHTML);
+	  }
+	  return document;
+	};
+	
 	
 	/*!
 	 * run functions for delete security policy
@@ -839,6 +840,7 @@
 	 */
 	
 	defaultCleanUp = function(document, url) {
+	  decodeNoScript(document);
 	  deleteMeta(document);
 	  deleteSendBoxAttrib(document);
 	  return addMeta(document, url);
@@ -951,15 +953,13 @@
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {
-	    var _style, attributeCounter, attributes, dom, faviconLinks, href, iconCounter, iconFlag, j, k, key, l, len, len1, len2, len3, len4, len5, link, links, m, meta, metas, n, o, ref, ref1, ref2, ref3, ref4, ref5, rel, result, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles, url, urlMas;
+	    var _style, attributeCounter, attributes, dom, faviconLinks, href, iconCounter, iconFlag, j, k, key, l, len, len1, len2, len3, len4, len5, link, links, m, meta, metas, n, o, ref, ref1, ref2, ref3, ref4, ref5, rel, selector, src, style, styleTags, tag, tagCounter, tags, tagsStyles, url, urlMas;
 	    metas = (ref = dictionary[""]) != null ? ref.document.querySelectorAll('[name]') : void 0;
 	    for (j = 0, len = metas.length; j < len; j++) {
 	      meta = metas[j];
 	      if (meta.getAttribute('name') === 'original-url') {
-	        result = getAttribute(dictionary[""].header, dictionary[""].doctype) + dictionary[""].text + "</html>";
-	        if (typeof done === "function") {
-	          done(result);
-	        }
+	        flag = true;
+	        callback(0, 0, 0);
 	        return;
 	      }
 	    }
@@ -1301,12 +1301,11 @@
 	      obj = {
 	        url: dom[0],
 	        header: dom[2],
-	        document: getDocument(dom[1], dom[0]),
+	        document: getDocument(dom[1][0], dom[1][1]),
 	        framesIdx: dom[4],
 	        doctype: dom[5],
 	        actualUrls: dom[6],
-	        styleSheets: dom[7],
-	        text: dom[1]
+	        styleSheets: dom[7]
 	      };
 	      dictionary[dom[3]] = obj;
 	    }
@@ -1495,7 +1494,7 @@
 	    obj = regExp.exec(src);
 	    while (obj != null) {
 	      elemMas.push(obj[1], obj[4]);
-	      urlMas.push(convertURL(obj[3], source));
+	      urlMas.push(convertURL(obj[3], source, (new URL(source)).protocol));
 	      lastIndex = regExp.lastIndex;
 	      if (src.indexOf('url(', lastIndex + 1) > -1) {
 	        obj = regExp.exec(src);
