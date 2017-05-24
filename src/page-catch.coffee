@@ -168,7 +168,7 @@ getSource = () ->
   # iframe-selectors and iframe-path
   return [
     [document.URL, document.location.protocol],
-    [document.head.outerHTML, document.body.outerHTML],
+    [document.head.innerHTML, document.body.outerHTML],
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
@@ -193,6 +193,7 @@ getDocument = (head,body) ->
   _html = document.implementation.createHTMLDocument()
   _html.head.innerHTML = head
   _html.body.outerHTML = body
+  _html.getElementsByTagName('head')[1].parentElement.removeChild(_html.getElementsByTagName('head')[1])
   return _html
 
 ###!
@@ -282,6 +283,7 @@ defaultCleanUp = (document,url) ->
   deleteMeta(document)
   deleteSendBoxAttrib(document)
   addMeta(document,url)
+
 
 ###!
 # take html attributes for save
@@ -441,7 +443,7 @@ getPage = (tabID, cleanUp, done) ->
           if (
             tag.getAttribute('rel') in ["stylesheet", "prefetch stylesheet"]
             )
-              href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1])
+              href = convertURL tag.getAttribute('href'), dom.url[0], dom.url[1]
               attributes = tag.attributes
               #console.log "INLINECSSS_START",tag
               inlineCSS getXHR(href), tag, href, dom, attributes,
@@ -467,7 +469,7 @@ getPage = (tabID, cleanUp, done) ->
               tagCounter--
               continue
             else
-              href = convertURL(tag.getAttribute('href'), dom.url[0], dom.url[1])
+              href = convertURL tag.getAttribute('href'), dom.url[0], dom.url[1]
               xhrToBase64 href, tag, (error, tag, result) ->
                 tagCounter--
                 if error?
@@ -612,6 +614,14 @@ getPage = (tabID, cleanUp, done) ->
         #console.log source
         frame.setAttribute('srcdoc', source)
 
+
+  scriptForAddHash = ()->
+    meta = document.querySelector('meta[name="original-url"]')
+    url = meta.content.split('#')
+    if (url[1])
+      window.location.hash = url[1]
+
+
   ###!
   # finish and return string with complete all resourses in one HTML
   # @param {Number} counter - counter of tags
@@ -625,6 +635,9 @@ getPage = (tabID, cleanUp, done) ->
       _document = dictionary[""].document
       defaultCleanUp _document, _url[0]
       cleanUp?(_document, _url)
+      script = document.createElement('script')
+      script.innerHTML = '('+ scriptForAddHash.toString() + ')' +'()'
+      _document.body.appendChild(script)
       result = getAttribute(
         dictionary[""].header, dictionary[""].doctype
       ) + _document.documentElement.innerHTML + "</html>"

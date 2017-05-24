@@ -269,7 +269,7 @@ var getPage =
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], [document.head.outerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], [document.head.innerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -295,6 +295,7 @@ var getPage =
 	  _html = document.implementation.createHTMLDocument();
 	  _html.head.innerHTML = head;
 	  _html.body.outerHTML = body;
+	  _html.getElementsByTagName('head')[1].parentElement.removeChild(_html.getElementsByTagName('head')[1]);
 	  return _html;
 	};
 	
@@ -511,7 +512,7 @@ var getPage =
 	 */
 	
 	getPage = function(tabID, cleanUp, done) {
-	  var createNewObj, dictionary, finalize, flag, parse;
+	  var createNewObj, dictionary, finalize, flag, parse, scriptForAddHash;
 	  dictionary = {};
 	  flag = false;
 	
@@ -832,6 +833,14 @@ var getPage =
 	    }
 	    return results;
 	  };
+	  scriptForAddHash = function() {
+	    var meta, url;
+	    meta = document.querySelector('meta[name="original-url"]');
+	    url = meta.content.split('#');
+	    if (url[1]) {
+	      return window.location.hash = url[1];
+	    }
+	  };
 	
 	  /*!
 	   * finish and return string with complete all resourses in one HTML
@@ -839,7 +848,7 @@ var getPage =
 	   * @param {Number} counter1 - counter of attributes
 	   */
 	  finalize = function(counter, counter1, counter2) {
-	    var _document, _url, result;
+	    var _document, _url, result, script;
 	    console.log(counter, counter1, counter2, flag);
 	    if (counter === 0 && counter1 === 0 && counter2 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
@@ -849,6 +858,9 @@ var getPage =
 	      if (typeof cleanUp === "function") {
 	        cleanUp(_document, _url);
 	      }
+	      script = document.createElement('script');
+	      script.innerHTML = '(' + scriptForAddHash.toString() + ')' + '()';
+	      _document.body.appendChild(script);
 	      result = getAttribute(dictionary[""].header, dictionary[""].doctype) + _document.documentElement.innerHTML + "</html>";
 	      if (typeof done === "function") {
 	        done(result);
