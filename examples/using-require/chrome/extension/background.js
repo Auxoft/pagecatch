@@ -702,7 +702,7 @@
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], [document.head.innerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], document.documentElement.outerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -723,12 +723,32 @@
 	 * @return {HTMLDocument} - created DOM with string
 	 */
 	
-	getDocument = function(head, body) {
-	  var _html;
+	getDocument = function(htmlText) {
+	  var _html, attribute, attributesBody, attributesHead, body, bodyRE, head, headRE, htmlObject, j, k, len, len1, regExp, tempDoc;
 	  _html = document.implementation.createHTMLDocument();
-	  _html.head.innerHTML = head;
-	  _html.body.outerHTML = body;
-	  _html.getElementsByTagName('head')[1].parentElement.removeChild(_html.getElementsByTagName('head')[1]);
+	  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi;
+	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
+	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
+	  htmlObject = regExp.exec(htmlText);
+	  head = htmlObject[1];
+	  body = htmlObject[2];
+	  tempDoc = document.createElement('html');
+	  tempDoc.innerHTML = head + body;
+	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
+	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
+	  if (htmlObject != null) {
+	    _html.head.innerHTML = headRE.exec(head)[1];
+	    _html.head = deleteIframesFromHead(_html.head);
+	    _html.body.innerHTML = bodyRE.exec(body)[1];
+	    for (j = 0, len = attributesBody.length; j < len; j++) {
+	      attribute = attributesBody[j];
+	      _html.body.setAttribute(attribute.name, attribute.value);
+	    }
+	    for (k = 0, len1 = attributesHead.length; k < len1; k++) {
+	      attribute = attributesHead[k];
+	      _html.head.setAttribute(attribute.name, attribute.value);
+	    }
+	  }
 	  return _html;
 	};
 	
@@ -1313,7 +1333,7 @@
 	      obj = {
 	        url: dom[0],
 	        header: dom[2],
-	        document: getDocument(dom[1][0], dom[1][1]),
+	        document: getDocument(dom[1]),
 	        framesIdx: dom[4],
 	        doctype: dom[5],
 	        actualUrls: dom[6],
