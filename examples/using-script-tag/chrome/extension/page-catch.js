@@ -269,7 +269,7 @@ var getPage =
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], document.documentElement.outerHTML, getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], [document.head.outerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -290,33 +290,13 @@ var getPage =
 	 * @return {HTMLDocument} - created DOM with string
 	 */
 	
-	getDocument = function(htmlText) {
-	  var _html, attribute, attributesBody, attributesHead, body, bodyRE, head, headRE, htmlObject, j, k, len, len1, regExp, tempDoc;
-	  _html = document.implementation.createHTMLDocument();
-	  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi;
-	  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/;
-	  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/;
-	  htmlObject = regExp.exec(htmlText);
-	  head = htmlObject[1];
-	  body = htmlObject[2];
-	  tempDoc = document.createElement('html');
-	  tempDoc.innerHTML = head + body;
-	  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes;
-	  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes;
-	  if (htmlObject != null) {
-	    _html.head.innerHTML = headRE.exec(head)[1];
-	    _html.head = deleteIframesFromHead(_html.head);
-	    _html.body.innerHTML = bodyRE.exec(body)[1];
-	    for (j = 0, len = attributesBody.length; j < len; j++) {
-	      attribute = attributesBody[j];
-	      _html.body.setAttribute(attribute.name, attribute.value);
-	    }
-	    for (k = 0, len1 = attributesHead.length; k < len1; k++) {
-	      attribute = attributesHead[k];
-	      _html.head.setAttribute(attribute.name, attribute.value);
-	    }
-	  }
-	  return _html;
+	getDocument = function(head, body) {
+	  var html;
+	  html = document.implementation.createHTMLDocument();
+	  html.head.outerHTML = head;
+	  html.body.outerHTML = body;
+	  html.head = deleteIframesFromHead(html.head);
+	  return html;
 	};
 	
 	
@@ -900,7 +880,7 @@ var getPage =
 	      obj = {
 	        url: dom[0],
 	        header: dom[2],
-	        document: getDocument(dom[1]),
+	        document: getDocument(dom[1][0], dom[1][1]),
 	        framesIdx: dom[4],
 	        doctype: dom[5],
 	        actualUrls: dom[6],
@@ -957,8 +937,6 @@ var getPage =
 /* 2 */
 /***/ function(module, exports) {
 
-	var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-	
 	module.exports = function(url, main, protocol) {
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
 	  flag = false;
@@ -984,12 +962,7 @@ var getPage =
 	    return main + url;
 	  }
 	  mainURLS = main.split('/');
-	  if (indexOf.call(mainURLS[mainURLS.length - 1], '.') >= 0 && !flag) {
-	    mainURLS.pop();
-	  }
-	  if (mainURLS[mainURLS.length - 1] === "") {
-	    mainURLS.pop();
-	  }
+	  mainURLS.pop();
 	  indexURLS = url.split('/');
 	  for (i = 0, len = indexURLS.length; i < len; i++) {
 	    indexURL = indexURLS[i];

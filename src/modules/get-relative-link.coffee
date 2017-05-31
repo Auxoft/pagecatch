@@ -30,9 +30,7 @@ module.exports = (url, main,protocol) ->
   #console.log main
   #console.log mainURLS
   #console.log mainURLS[mainURLS.length-1].indexOf('.')
-  if '.' in mainURLS[mainURLS.length-1] and not flag
-    mainURLS.pop()
-  mainURLS.pop() if mainURLS[mainURLS.length-1] == ""
+  mainURLS.pop()
     #console.log(mainURLS)
   indexURLS = url.split('/')
   #console.log(mainURLS)

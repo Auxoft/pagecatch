@@ -168,7 +168,7 @@ getSource = () ->
   # iframe-selectors and iframe-path
   return [
     [document.URL, document.location.protocol],
-    document.documentElement.outerHTML,
+    [document.head.outerHTML, document.body.outerHTML],
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
@@ -189,31 +189,39 @@ deleteIframesFromHead = (head) ->
 # @param {string} body - string with html code of body
 # @return {HTMLDocument} - created DOM with string
 ###
-getDocument = (htmlText) ->
-  _html = document.implementation.createHTMLDocument()
-  regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
-  headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
-  bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
-  htmlObject = regExp.exec(htmlText)
-  head = htmlObject[1]
-  body = htmlObject[2]
-  tempDoc = document.createElement('html')
-  tempDoc.innerHTML = head+body
-  # console.log tempDoc
-  attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
-  attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
-  if htmlObject?
-    _html.head.innerHTML = headRE.exec(head)[1]
-    _html.head = deleteIframesFromHead(_html.head)
-    #console.log(_html)
-    _html.body.innerHTML = bodyRE.exec(body)[1]
-    for attribute in attributesBody
-      _html.body.setAttribute attribute.name, attribute.value
-    for attribute in attributesHead
-      _html.head.setAttribute attribute.name, attribute.value
-  #console.log _html.styleSheets
-  #console.log _html
-  return _html
+
+getDocument = (head,body) ->
+  html = document.implementation.createHTMLDocument()
+  html.head.outerHTML = head;
+  html.body.outerHTML = body;
+  html.head = deleteIframesFromHead(html.head)
+  return html
+
+# getDocument = (htmlText) ->
+#   _html = document.implementation.createHTMLDocument()
+#   regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
+#   headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
+#   bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
+#   htmlObject = regExp.exec(htmlText)
+#   head = htmlObject[1]
+#   body = htmlObject[2]
+#   tempDoc = document.createElement('html')
+#   tempDoc.innerHTML = head+body
+#   # console.log tempDoc
+#   attributesBody = tempDoc.getElementsByTagName('body')[0].attributes
+#   attributesHead = tempDoc.getElementsByTagName('head')[0].attributes
+#   if htmlObject?
+#     _html.head.innerHTML = headRE.exec(head)[1]
+#     _html.head = deleteIframesFromHead(_html.head)
+#     #console.log(_html)
+#     _html.body.innerHTML = bodyRE.exec(body)[1]
+#     for attribute in attributesBody
+#       _html.body.setAttribute attribute.name, attribute.value
+#     for attribute in attributesHead
+#       _html.head.setAttribute attribute.name, attribute.value
+#   #console.log _html.styleSheets
+#   #console.log _html
+#   return _html
 
 ###!
 # get frame position on background script
@@ -680,7 +688,7 @@ getPage = (tabID, cleanUp, done) ->
       obj =
         url: dom[0]
         header: dom[2]
-        document: getDocument(dom[1])
+        document: getDocument(dom[1][0],dom[1][1])
         framesIdx: dom[4]
         doctype: dom[5]
         actualUrls: dom[6]
