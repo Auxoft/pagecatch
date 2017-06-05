@@ -702,7 +702,7 @@
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], [document.head.outerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], [document.head.innerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
@@ -726,9 +726,10 @@
 	getDocument = function(head, body) {
 	  var html;
 	  html = document.implementation.createHTMLDocument();
-	  html.head.outerHTML = head;
-	  html.body.outerHTML = body;
+	  html.head.innerHTML = head;
 	  html.head = deleteIframesFromHead(html.head);
+	  html.body.outerHTML = body;
+	  html.getElementsByTagName('head')[1].parentElement.removeChild(html.getElementsByTagName('head')[1]);
 	  return html;
 	};
 	
@@ -1266,13 +1267,8 @@
 	    }
 	    return results;
 	  };
-	  scriptForAddHash = function() {
-	    var meta, url;
-	    meta = document.querySelector('meta[name="original-url"]');
-	    url = meta.content.split('#');
-	    if (url[1]) {
-	      return window.location.hash = url[1];
-	    }
+	  scriptForAddHash = function(hashURL) {
+	    return window.location.hash = hashURL.split('#')[1];
 	  };
 	
 	  /*!
@@ -1281,7 +1277,7 @@
 	   * @param {Number} counter1 - counter of attributes
 	   */
 	  finalize = function(counter, counter1, counter2) {
-	    var _document, _url, result, script;
+	    var _document, _url, hashURL, result, script;
 	    console.log(counter, counter1, counter2, flag);
 	    if (counter === 0 && counter1 === 0 && counter2 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
@@ -1291,9 +1287,12 @@
 	      if (typeof cleanUp === "function") {
 	        cleanUp(_document, _url);
 	      }
-	      script = document.createElement('script');
-	      script.innerHTML = '(' + scriptForAddHash.toString() + ')' + '()';
-	      _document.body.appendChild(script);
+	      hashURL = dictionary[""].url[0];
+	      if (hashURL.indexOf('#') !== -1) {
+	        script = document.createElement('script');
+	        script.innerHTML = 'window.location.hash =' + '"' + hashURL.split('#')[1] + '"';
+	        _document.head.insertBefore(script, _document.head.children[1]);
+	      }
 	      result = getAttribute(dictionary[""].header, dictionary[""].doctype) + _document.documentElement.innerHTML + "</html>";
 	      if (typeof done === "function") {
 	        done(result);

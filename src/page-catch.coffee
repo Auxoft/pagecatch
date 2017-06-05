@@ -168,7 +168,7 @@ getSource = () ->
   # iframe-selectors and iframe-path
   return [
     [document.URL, document.location.protocol],
-    [document.head.outerHTML, document.body.outerHTML],
+    [document.head.innerHTML, document.body.outerHTML],
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
@@ -190,11 +190,12 @@ deleteIframesFromHead = (head) ->
 # @return {HTMLDocument} - created DOM with string
 ###
 
-getDocument = (head,body) ->
+getDocument = (head, body) ->
   html = document.implementation.createHTMLDocument()
-  html.head.outerHTML = head;
-  html.body.outerHTML = body;
+  html.head.innerHTML = head
   html.head = deleteIframesFromHead(html.head)
+  html.body.outerHTML = body
+  html.getElementsByTagName('head')[1].parentElement.removeChild(html.getElementsByTagName('head')[1])
   return html
 
 # getDocument = (htmlText) ->
@@ -642,11 +643,8 @@ getPage = (tabID, cleanUp, done) ->
         frame.setAttribute('srcdoc', source)
 
 
-  scriptForAddHash = ()->
-    meta = document.querySelector('meta[name="original-url"]')
-    url = meta.content.split('#')
-    if (url[1])
-      window.location.hash = url[1]
+  scriptForAddHash = (hashURL)->
+      window.location.hash = hashURL.split('#')[1]
 
 
   ###!
@@ -662,9 +660,11 @@ getPage = (tabID, cleanUp, done) ->
       _document = dictionary[""].document
       defaultCleanUp _document, _url[0]
       cleanUp?(_document, _url)
-      script = document.createElement('script')
-      script.innerHTML = '('+ scriptForAddHash.toString() + ')' +'()'
-      _document.body.appendChild(script)
+      hashURL = dictionary[""].url[0]
+      if hashURL.indexOf('#') != -1
+        script = document.createElement('script')
+        script.innerHTML = 'window.location.hash =' + '"' + hashURL.split('#')[1] + '"'
+        _document.head.insertBefore(script, _document.head.children[1])
       result = getAttribute(
         dictionary[""].header, dictionary[""].doctype
       ) + _document.documentElement.innerHTML + "</html>"
