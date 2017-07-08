@@ -589,7 +589,7 @@
 	  passOnTree(document.body);
 	
 	  /*!
-	   * get frame index in page
+	   * get frame index in the page
 	   * @return {String} - frame index
 	   * @example 0:3:5
 	   */
@@ -626,7 +626,7 @@
 	  /*!
 	   * get frame position on content script
 	   * @param {HTMLDocument} DOM - DOM document object
-	   * @return {Object} - frames position on current frame
+	   * @return {Object} - frames position on the current frame
 	   * @example [3,0,0]: 0
 	   */
 	  getElementPath = function(DOM) {
@@ -636,7 +636,7 @@
 	    /*!
 	     * get frameID
 	     * @param {HTMLIframeElement} obj - iframe document object
-	     * @return {String} - string with index iframe
+	     * @return {String} - string with the iframe index
 	     * @example [3,0,0]
 	     */
 	    getFrameId = function(obj) {
@@ -735,7 +735,7 @@
 	
 	
 	/*!
-	 * get frame position on background script
+	 * get frame position on the background script
 	 * @param {HTMLIframeElement} - iframe that we want find position,
 	 * @param {HTMLDocument} - DOM that are parent of this iframe,
 	 * @return {String} - string with iframe position
@@ -1278,7 +1278,7 @@
 	   */
 	  finalize = function(counter, counter1, counter2) {
 	    var _document, _url, hashURL, result, script;
-	    console.log(counter, counter1, counter2, flag);
+	    console.log("counter=", counter, 'counter1=', counter1, 'counter2=', counter2, 'flag=', flag);
 	    if (counter === 0 && counter1 === 0 && counter2 === 0 && flag === true) {
 	      createNewObj(dictionary[""], "");
 	      _url = dictionary[""].url;
@@ -1372,6 +1372,9 @@
 	module.exports = function(url, main, protocol) {
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
 	  flag = false;
+	  if (url == null) {
+	    url = '';
+	  }
 	  if ((url[0] === '"' && url[url.length - 1] === '"') || (url[0] === "'" && url[url.length - 1] === "'")) {
 	    url = url.substr(1, url.length - 2);
 	  }

@@ -199,7 +199,7 @@
 	  file = new File([htmlText], "index.html", {
 	    type: "text/html;charset=utf-8"
 	  });
-	  return fileSaver.saveAs(file);
+	  return saveAs(file);
 	};
 	
 	chrome.management.getAll(function(extensionsArray) {

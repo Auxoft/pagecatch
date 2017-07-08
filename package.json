@@ -1,6 +1,6 @@
 {
   "name": "pagecatch",
-  "version": "0.2.3",
+  "version": "0.2.5",
   "description": "Chrome extension library for saving current webpage state into one html file including all resources",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "save",
     "html"
   ],
-  "author": "Auxoft LLC's team and all contributors <leonid@auxoft.com> (https://github.com/Auxoft/pagecatch)",
+  "author": "Auxoft LLC's team and all contributors <vlad@auxoft.com> (https://github.com/Auxoft/pagecatch)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Auxoft/pagecatch/issues"

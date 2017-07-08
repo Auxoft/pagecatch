@@ -12,7 +12,8 @@ getCounter = (urlMas, actualUrls) ->
 
 
 addNewActualUrls = (htmlText, actualUrls, source) ->
-  re = /@font-face\s*\{[\s\S]*?src\s*:\s*(?:url\(\s*(['"])?([\s\S]*?)\1\s*\))+[\s\S]*?.*?\}/g
+  re = ///@font-face\s*\{[\s\S]*?src\s*:\s*(?:url\(\s*(['"])?
+          ([\s\S]*?)\1\s*\))+[\s\S]*?.*?\}///g
   re1 = /url\(\s*(['"])?([\s\S]*?)\1\s*\)/g
   while (obj = re.exec(htmlText))?
     while (url = re1.exec(obj[0]))?
@@ -22,7 +23,8 @@ addNewActualUrls = (htmlText, actualUrls, source) ->
 module.exports = (src, element, source, dom, attributes, callback) ->
   flag = false
   if src.indexOf("@import") > -1
-    re = /@import\s+(?:url\((['"])?([\s\S]*?)\1\)|(['"])?([\s\S]*?)\3)\s*[^;]*?(?:;|$)/gmi
+    re = ///@import\s+(?:url\((['"])?([\s\S]*?)\1\)|(['"])?
+            ([\s\S]*?)\3)\s*[^;]*?(?:;|$)///gmi
     src = src.replace(re, (str) ->
       temp = re.exec(str)
       if not temp?
@@ -77,7 +79,10 @@ module.exports = (src, element, source, dom, attributes, callback) ->
               src.push elemMas[index]
               index++
               if urlMas[urlIndex]?
-                if dom.actualUrls[urlMas[urlIndex]] or urlMas[urlIndex].startsWith('data:')
+                if (
+                  dom.actualUrls[urlMas[urlIndex]] or
+                  urlMas[urlIndex].startsWith('data:')
+                )
                   #console.log 'URL', dom.actualUrls[urlMas[urlIndex]]
                   if urlMas[urlIndex].startsWith('data:')
                     src.push '"' + urlMas[urlIndex] + '"'

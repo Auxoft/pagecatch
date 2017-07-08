@@ -72,9 +72,9 @@ getSource = () ->
     getUrlMas(window.getComputedStyle(elem, ':before'))
 
   passOnTree(document.body)
-  
+
   ###!
-  # get frame index in page
+  # get frame index in the page
   # @return {String} - frame index
   # @example 0:3:5
   ###
@@ -102,7 +102,7 @@ getSource = () ->
   ###!
   # get frame position on content script
   # @param {HTMLDocument} DOM - DOM document object
-  # @return {Object} - frames position on current frame
+  # @return {Object} - frames position on the current frame
   # @example [3,0,0]: 0
   ###
   getElementPath = (DOM) ->
@@ -111,7 +111,7 @@ getSource = () ->
     ###!
     # get frameID
     # @param {HTMLIframeElement} obj - iframe document object
-    # @return {String} - string with index iframe
+    # @return {String} - string with the iframe index
     # @example [3,0,0]
     ###
     getFrameId = (obj) ->
@@ -195,12 +195,15 @@ getDocument = (head, body) ->
   html.head.innerHTML = head
   html.head = deleteIframesFromHead(html.head)
   html.body.outerHTML = body
-  html.getElementsByTagName('head')[1].parentElement.removeChild(html.getElementsByTagName('head')[1])
+  html.getElementsByTagName('head')[1].parentElement.removeChild(
+    html.getElementsByTagName('head')[1]
+  )
   return html
 
 # getDocument = (htmlText) ->
 #   _html = document.implementation.createHTMLDocument()
-#   regExp = /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
+#   regExp = \
+#     /(?:<!--[\s\S]*?-->|\s)*(<head[\s\S]*?>[\s\S]*?<\/head>)([\s\S]*)$/mi
 #   headRE = /<head(?:[\s\S]*?)>([\s\S]*?)<\/head>/
 #   bodyRE = /<body(?:[\s\S]*?)>([\s\S]*?)<\/body>/
 #   htmlObject = regExp.exec(htmlText)
@@ -225,7 +228,7 @@ getDocument = (head, body) ->
 #   return _html
 
 ###!
-# get frame position on background script
+# get frame position on the background script
 # @param {HTMLIframeElement} - iframe that we want find position,
 # @param {HTMLDocument} - DOM that are parent of this iframe,
 # @return {String} - string with iframe position
@@ -284,7 +287,12 @@ addMeta = (DOM, url)->
 
 
 decode = (text) ->
-  if (text.indexOf('&amp;') >=0 or text.indexOf('&quot;')>=0 or text.indexOf('&gt;')>=0 or text.indexOf('&lt;')>=0)
+  if (
+    text.indexOf('&amp;') >=0 or
+    text.indexOf('&quot;')>=0 or
+    text.indexOf('&gt;')>=0 or
+    text.indexOf('&lt;')>=0
+  )
     text = text.replace(/\&amp\;/g, '&')
     text = text.replace(/\&quot\;/g, '"')
     text = text.replace(/\&lt\;/g, '<')
@@ -299,7 +307,7 @@ decodeNoScript = (document)->
   for script in noscripts
     script.outerHTML = decode(script.outerHTML)
   return document
-    
+
 
 ###!
 # run functions for delete security policy
@@ -359,6 +367,7 @@ deleteElemsFromHead = (obj)->
     elem.parentElement.removeChild(elem)
   return document
 
+
 createSelector = (obj)->
   selector = []
   while (obj && obj.nodeName != 'HTML')
@@ -372,6 +381,8 @@ createSelector = (obj)->
   selector = selector.join(':')
 
   return selector
+
+
 ###!
 # save page
 # @param {Number} tabID - number of tab which you want to save,
@@ -383,7 +394,7 @@ createSelector = (obj)->
 getPage = (tabID, cleanUp, done) ->
   dictionary = {}
   flag = false
-  
+
   ###!
   # parse tags as img,style,link and parse attribute style in any tags with him
   # @param {Function} callback - function that check completing of save
@@ -611,6 +622,8 @@ getPage = (tabID, cleanUp, done) ->
           continue
     flag = true
     callback tagCounter, attributeCounter, iconCounter
+
+
   ###!
   # create one object from dictionary of frames
   # @param {Object} obj - obj of dictionary(any frame from page)
@@ -626,14 +639,15 @@ getPage = (tabID, cleanUp, done) ->
         #console.log key
         if selector == key
           index= obj.framesIdx[key]
-      if index == -1
-        continue
+
+      continue if index == -1
+
       key = str + index
       if dictionary[key]?
-        createNewObj dictionary[key], key+":"
+        createNewObj(dictionary[key], key+":")
         _url = dictionary[key].url
         _document = dictionary[key].document
-        defaultCleanUp _document, _url[0]
+        defaultCleanUp(_document, _url[0])
         cleanUp?(_document, _url[0])
         source = getAttribute(
           dictionary[key].header,
@@ -644,7 +658,7 @@ getPage = (tabID, cleanUp, done) ->
 
 
   scriptForAddHash = (hashURL)->
-      window.location.hash = hashURL.split('#')[1]
+    window.location.hash = hashURL.split('#')[1]
 
 
   ###!
@@ -653,7 +667,12 @@ getPage = (tabID, cleanUp, done) ->
   # @param {Number} counter1 - counter of attributes
   ###
   finalize = (counter, counter1, counter2) ->
-    console.log counter, counter1, counter2, flag
+    console.log(
+      "counter=", counter,
+      'counter1=', counter1,
+      'counter2=', counter2,
+      'flag=', flag
+    )
     if counter == 0 and counter1 == 0 and counter2 == 0 and flag == true
       createNewObj dictionary[""],""
       _url = dictionary[""].url
@@ -663,7 +682,8 @@ getPage = (tabID, cleanUp, done) ->
       hashURL = dictionary[""].url[0]
       if hashURL.indexOf('#') != -1
         script = document.createElement('script')
-        script.innerHTML = 'window.location.hash =' + '"' + hashURL.split('#')[1] + '"'
+        script.innerHTML = 'window.location.hash =' + \
+          '"' + hashURL.split('#')[1] + '"'
         _document.head.insertBefore(script, _document.head.children[1])
       result = getAttribute(
         dictionary[""].header, dictionary[""].doctype

@@ -129,7 +129,7 @@ cleanUp = (document, url) ->
 #save our html in file
 save = (htmlText) ->
   file = new File([htmlText], "index.html", {type: "text/html;charset=utf-8"})
-  fileSaver.saveAs(file)
+  saveAs(file)
 
 chrome.management.getAll (extensionsArray) ->
   for extension in extensionsArray

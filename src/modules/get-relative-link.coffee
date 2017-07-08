@@ -1,13 +1,18 @@
-module.exports = (url, main,protocol) ->
+module.exports = (url, main, protocol) ->
+  #console.log "url=", url
   flag = false
+  url ?= ''
+
   if (
     (url[0] == '"' and url[url.length - 1] == '"') or
     (url[0] == "'" and url[url.length - 1] == "'")
   )
-    url = url.substr 1, url.length - 2
+    url = url.substr(1, url.length - 2)
+
   if url.startsWith('data:')
     #console.log "DATA", url
     return url
+
   url = url.replace(/\s/g, '')
   #console.warn "URL: ", url
   #console.warn "MAIN: ", main
@@ -26,15 +31,19 @@ module.exports = (url, main,protocol) ->
     main = mainURLS.join('/')
     #console.log main+url
     return main+url
+
   mainURLS = main.split('/')
   #console.log main
   #console.log mainURLS
   #console.log mainURLS[mainURLS.length-1].indexOf('.')
+
   mainURLS.pop()
-    #console.log(mainURLS)
+  #console.log(mainURLS)
+
   indexURLS = url.split('/')
   #console.log(mainURLS)
   #console.log indexURLS
+
   for indexURL in indexURLS
     if indexURL == '..'
       mainURLS.pop()
@@ -42,5 +51,6 @@ module.exports = (url, main,protocol) ->
       continue
     else
       mainURLS.push(indexURL)
+  #
   #console.log "LASTURL", mainURLS.join('/')
   return mainURLS.join('/')
