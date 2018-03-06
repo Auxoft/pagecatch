@@ -38,13 +38,17 @@ getSource = () ->
 
 
   getCssRulesForTagStyle = (stylesheets) ->
+    #console.warn "$$$-1 stylesheets=", stylesheets
     for style in stylesheets
+      #console.warn "$$$-2 style=", style
       str = ""
-      if style.rules
+      if style.hasOwnProperty('rules')
+        #console.warn "$$$-3 style.rules=", style.rules
         for rule in style.rules
           str+= rule.cssText
+        #console.warn "$$$-4 str=", str
         stylesheetsArray.push [str,createSelector(style.ownerNode)]
-    # console.log stylesheetsArray
+    #console.warn "$$$-5 stylesheetsArray=", stylesheetsArray
   getCssRulesForTagStyle(document.styleSheets)
 
 

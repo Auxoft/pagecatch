@@ -536,7 +536,7 @@
 	    for (j = 0, len = stylesheets.length; j < len; j++) {
 	      style = stylesheets[j];
 	      str = "";
-	      if (style.rules) {
+	      if (style.hasOwnProperty('rules')) {
 	        ref = style.rules;
 	        for (k = 0, len1 = ref.length; k < len1; k++) {
 	          rule = ref[k];
