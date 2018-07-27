@@ -98,23 +98,24 @@ var getPage =
 	    return selector;
 	  };
 	  getCssRulesForTagStyle = function(stylesheets) {
-	    var j, k, len, len1, ref, results, rule, str, style;
-	    results = [];
+	    var j, k, len, len1, ref, rule, str, style;
+	    console.warn("$$$-1 stylesheets=", stylesheets);
 	    for (j = 0, len = stylesheets.length; j < len; j++) {
 	      style = stylesheets[j];
+	      console.warn("$$$-2 style=", style);
 	      str = "";
-	      if (style.hasOwnProperty('rules')) {
+	      if (style.rules != null) {
+	        console.warn("$$$-3 style.rules=", style.rules);
 	        ref = style.rules;
 	        for (k = 0, len1 = ref.length; k < len1; k++) {
 	          rule = ref[k];
 	          str += rule.cssText;
 	        }
-	        results.push(stylesheetsArray.push([str, createSelector(style.ownerNode)]));
-	      } else {
-	        results.push(void 0);
+	        console.warn("$$$-4 str=", str);
+	        stylesheetsArray.push([str, createSelector(style.ownerNode)]);
 	      }
 	    }
-	    return results;
+	    return console.warn("$$$-5 stylesheetsArray=", stylesheetsArray);
 	  };
 	  getCssRulesForTagStyle(document.styleSheets);
 	  getUrlMas = function(styleObj) {
@@ -506,9 +507,9 @@ var getPage =
 	/*!
 	 * save page
 	 * @param {Number} tabID - number of tab which you want to save,
-	 * @param {Function} cleanUp - function with clean any attributes from page,
-	 * @param {Function} done - function in which will be return html text of
-	 *                          saved page
+	 * @param {Function} cleanUp - function witch cleans any attributes from page,
+	 * @param {Function} done - function in which html-text of saved page will be
+	 *                          return
 	 * @example "<! DOCTYPE html> <html lang="en" class="is-absent"><head>...</html>"
 	 */
 	
@@ -518,7 +519,7 @@ var getPage =
 	  flag = false;
 	
 	  /*!
-	   * parse tags as img,style,link and parse attribute style in any tags with him
+	   * parse tags as img,style,link and parse attribute style in any tags with it
 	   * @param {Function} callback - function that check completing of save
 	   */
 	  parse = function(callback) {

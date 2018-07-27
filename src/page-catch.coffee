@@ -42,7 +42,7 @@ getSource = () ->
     for style in stylesheets
       #console.warn "$$$-2 style=", style
       str = ""
-      if style.hasOwnProperty('rules')
+      if style.rules? #style.hasOwnProperty('rules')
         #console.warn "$$$-3 style.rules=", style.rules
         for rule in style.rules
           str+= rule.cssText
@@ -390,9 +390,9 @@ createSelector = (obj)->
 ###!
 # save page
 # @param {Number} tabID - number of tab which you want to save,
-# @param {Function} cleanUp - function with clean any attributes from page,
-# @param {Function} done - function in which will be return html text of
-#                          saved page
+# @param {Function} cleanUp - function witch cleans any attributes from page,
+# @param {Function} done - function in which html-text of saved page will be
+#                          return
 # @example "<! DOCTYPE html> <html lang="en" class="is-absent"><head>...</html>"
 ###
 getPage = (tabID, cleanUp, done) ->
@@ -400,7 +400,7 @@ getPage = (tabID, cleanUp, done) ->
   flag = false
 
   ###!
-  # parse tags as img,style,link and parse attribute style in any tags with him
+  # parse tags as img,style,link and parse attribute style in any tags with it
   # @param {Function} callback - function that check completing of save
   ###
   parse = (callback) ->
