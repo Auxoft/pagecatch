@@ -38,17 +38,22 @@ getSource = () ->
 
 
   getCssRulesForTagStyle = (stylesheets) ->
-    #console.warn "$$$-1 stylesheets=", stylesheets
+    #console.log "$$$-1 stylesheets=", stylesheets
     for style in stylesheets
-      #console.warn "$$$-2 style=", style
+      #console.log "$$$-2 style=", style
       str = ""
-      if style.rules? #style.hasOwnProperty('rules')
-        #console.warn "$$$-3 style.rules=", style.rules
-        for rule in style.rules
-          str+= rule.cssText
-        #console.warn "$$$-4 str=", str
-        stylesheetsArray.push [str,createSelector(style.ownerNode)]
-    #console.warn "$$$-5 stylesheetsArray=", stylesheetsArray
+      try
+        if style.rules?
+          #console.log "$$$-3 style.rules=", style.rules
+          str = Array.from(style.rules).map((r) -> r.cssText).join('\n')
+          #console.log "$$$-4 str=", str
+          stylesheetsArray.push [str, createSelector(style.ownerNode)]
+      catch e
+        #console.warn "skip style=", style
+    #console.log "$$$-5 stylesheetsArray=", stylesheetsArray
+    return
+
+
   getCssRulesForTagStyle(document.styleSheets)
 
 
@@ -460,14 +465,19 @@ getPage = (tabID, cleanUp, done) ->
     for key, dom of dictionary
       dom.document.head = deleteElemsFromHead(dom.document.head)
       # console.log dom.document
-      styleTags = dom.document.querySelectorAll 'style'
+      styleTags = dom.document.querySelectorAll('style')
+      #console.log "============================="
+      #console.log "styleTags=", styleTags
       for style in styleTags
-        if style.innerHTML.length == 0
-          selector = createSelector(style)
-          for _style in dom.styleSheets
-            if _style[1] == selector
-              style.innerHTML = _style[0]
-              break
+        #console.log "style=", style
+        #console.log "style.innerHTML=", (style.innerHTML ? "").substr(0, 60)
+        selector = createSelector(style)
+        #console.log "selecto=", selector
+        for _style in dom.styleSheets
+          #console.warn "_style=", _style[0], _style[1], _style[2]
+          if _style[1] == selector and _style[0]
+            style.innerHTML = _style[0]
+            break
       tagsStyles = dom.document.querySelectorAll '*[style]'
       for tag in tagsStyles
         attributeCounter++

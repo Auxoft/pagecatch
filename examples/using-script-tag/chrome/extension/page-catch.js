@@ -98,24 +98,21 @@ var getPage =
 	    return selector;
 	  };
 	  getCssRulesForTagStyle = function(stylesheets) {
-	    var j, k, len, len1, ref, rule, str, style;
-	    console.warn("$$$-1 stylesheets=", stylesheets);
+	    var e, j, len, str, style;
 	    for (j = 0, len = stylesheets.length; j < len; j++) {
 	      style = stylesheets[j];
-	      console.warn("$$$-2 style=", style);
 	      str = "";
-	      if (style.rules != null) {
-	        console.warn("$$$-3 style.rules=", style.rules);
-	        ref = style.rules;
-	        for (k = 0, len1 = ref.length; k < len1; k++) {
-	          rule = ref[k];
-	          str += rule.cssText;
+	      try {
+	        if (style.rules != null) {
+	          str = Array.from(style.rules).map(function(r) {
+	            return r.cssText;
+	          }).join('\n');
+	          stylesheetsArray.push([str, createSelector(style.ownerNode)]);
 	        }
-	        console.warn("$$$-4 str=", str);
-	        stylesheetsArray.push([str, createSelector(style.ownerNode)]);
+	      } catch (error1) {
+	        e = error1;
 	      }
 	    }
-	    return console.warn("$$$-5 stylesheetsArray=", stylesheetsArray);
 	  };
 	  getCssRulesForTagStyle(document.styleSheets);
 	  getUrlMas = function(styleObj) {
@@ -597,15 +594,13 @@ var getPage =
 	      styleTags = dom.document.querySelectorAll('style');
 	      for (l = 0, len2 = styleTags.length; l < len2; l++) {
 	        style = styleTags[l];
-	        if (style.innerHTML.length === 0) {
-	          selector = createSelector(style);
-	          ref3 = dom.styleSheets;
-	          for (m = 0, len3 = ref3.length; m < len3; m++) {
-	            _style = ref3[m];
-	            if (_style[1] === selector) {
-	              style.innerHTML = _style[0];
-	              break;
-	            }
+	        selector = createSelector(style);
+	        ref3 = dom.styleSheets;
+	        for (m = 0, len3 = ref3.length; m < len3; m++) {
+	          _style = ref3[m];
+	          if (_style[1] === selector && _style[0]) {
+	            style.innerHTML = _style[0];
+	            break;
 	          }
 	        }
 	      }
@@ -1028,12 +1023,12 @@ var getPage =
 	};
 	
 	addNewActualUrls = function(htmlText, actualUrls, source) {
-	  var obj, re, re1, url;
-	  re = /@font-face\s*\{[\s\S]*?src\s*:\s*(?:url\(\s*(['"])?([\s\S]*?)\1\s*\))+[\s\S]*?.*?\}/g;
-	  re1 = /url\(\s*(['"])?([\s\S]*?)\1\s*\)/g;
+	  var obj, re, re1, ref, url;
+	  re = /@font-face\s*\{[\s\S]*?src\s*:\s*(?:local\(.*?\)\s*,?\s*)*(?:url\(\s*(?:(['"])?([\s\S]*?)\1|()([\s\S]*?))\s*\))+[\s\S]*?.*?\}/g;
+	  re1 = /url\(\s*(?:(['"])([^\1]*?)\1|([\s\S]*?))\s*\)/g;
 	  while ((obj = re.exec(htmlText)) != null) {
 	    while ((url = re1.exec(obj[0])) != null) {
-	      actualUrls[convertURL(url[2], source)] = true;
+	      actualUrls[convertURL((ref = url[2]) != null ? ref : url[3], source)] = true;
 	    }
 	  }
 	  return actualUrls;

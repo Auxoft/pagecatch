@@ -12,12 +12,17 @@ getCounter = (urlMas, actualUrls) ->
 
 
 addNewActualUrls = (htmlText, actualUrls, source) ->
-  re = ///@font-face\s*\{[\s\S]*?src\s*:\s*(?:url\(\s*(['"])?
-          ([\s\S]*?)\1\s*\))+[\s\S]*?.*?\}///g
-  re1 = /url\(\s*(['"])?([\s\S]*?)\1\s*\)/g
+  re = ///@font-face\s*\{[\s\S]*?src\s*:\s*
+          (?:local\(.*?\)\s*,?\s*)*
+          (?:url\(\s*(?:(['"])?([\s\S]*?)\1|
+          ()([\s\S]*?))\s*\))+[\s\S]*?.*?\}
+       ///g
+
+  re1 = /url\(\s*(?:(['"])([^\1]*?)\1|([\s\S]*?))\s*\)/g
+
   while (obj = re.exec(htmlText))?
     while (url = re1.exec(obj[0]))?
-      actualUrls[convertURL(url[2], source)] = true
+      actualUrls[convertURL(url[2] ? url[3], source)] = true
   return actualUrls
 
 module.exports = (src, element, source, dom, attributes, callback) ->
