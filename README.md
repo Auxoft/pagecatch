@@ -6,8 +6,8 @@ This library is used for saving current webpage state into one huge html file in
 
 1. `git clone https://github.com/Auxoft/pagecatch.git`
 2. `cd pagecatch`
-3. `npm-install` *# to instal all required npm modules*
-4. `npm install --global gulp-cli` *# to install gulp*
+3. `npm install` *# to instal all required npm modules*
+4. `npm install --global gulp-cli` *# to install Gulp CLI*
 5. `npm run build-extension` *# to build chrome-extension (See examples)*
 6. `npm run build-lib` *# to build pageCatch as a library you can use in your own projects.*
 
