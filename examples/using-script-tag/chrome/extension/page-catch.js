@@ -43,7 +43,7 @@ var getPage =
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var META_ATTRIBS_FOR_DEL, TreeElementNotFound, addMeta, badLinksRel, convertURL, createSelector, decode, decodeNoScript, defaultCleanUp, deleteElemsFromHead, deleteIframesFromHead, deleteMeta, deleteSendBoxAttrib, getAttribute, getDoctype, getDocument, getFramePosition, getPage, getSource, getXHR, inlineCSS, xhrToBase64,
 	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
@@ -890,9 +890,9 @@ var getPage =
 	module.exports = getPage;
 
 
-/***/ },
+/***/ }),
 /* 1 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	var xhrToBase64;
 	
@@ -928,9 +928,9 @@ var getPage =
 	module.exports = xhrToBase64;
 
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function(url, main, protocol) {
 	  var flag, i, indexURL, indexURLS, len, mainURLS;
@@ -976,9 +976,9 @@ var getPage =
 	};
 
 
-/***/ },
+/***/ }),
 /* 3 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function(url) {
 	  var e, xhr;
@@ -999,9 +999,9 @@ var getPage =
 	};
 
 
-/***/ },
+/***/ }),
 /* 4 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var addNewActualUrls, convertToBase64, convertURL, getCounter, getXHR;
 	
@@ -1125,6 +1125,6 @@ var getPage =
 	};
 
 
-/***/ }
+/***/ })
 /******/ ]);
 //# sourceMappingURL=page-catch.js.map

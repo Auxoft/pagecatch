@@ -3,12 +3,19 @@ var gulp = require('gulp')
     webpack = require('webpack-stream')
 
 
-gulp.task('build-background-script-tag', function() {
-  return gulp.src(config[0].entry)
-    .pipe(webpack(config[0]))
+gulp.task('copy-file-saver', function() {
+  return gulp.src('./node_modules/file-saver/FileSaver.min.js')
     .pipe(gulp.dest('./examples/using-script-tag/chrome/extension'))
   }
 )
+
+var copyFileSaver = gulp.series('copy-file-saver')
+
+gulp.task('build-background-script-tag', copyFileSaver, function() {
+  return gulp.src(config[0].entry)
+    .pipe(webpack(config[0]))
+    .pipe(gulp.dest('./examples/using-script-tag/chrome/extension'))
+})
 
 gulp.task('build-background-require', function() {
   return gulp.src(config[3].entry)
@@ -31,12 +38,13 @@ gulp.task('build-page-catch-min', function() {
   }
 )
 
-gulp.task('copy-file-saver', function() {
- return gulp.src('./node_modules/file-saver/FileSaver.min.js')
-   .pipe(gulp.dest('./examples/using-script-tag/chrome/extension'))
- }
-)
-gulp.task('build-extensions', function() {
-  gulp.run(['build-background-script-tag', 'build-background-require', 'build-page-catch', 'copy-file-saver'])
-  }
-)
+var buildExtensions = gulp.series(gulp.parallel([
+  'build-background-script-tag',
+  'build-background-require',
+  'build-page-catch'
+]))
+
+gulp.task('build-extensions', buildExtensions, function(cb) {
+  return cb();
+})
+
