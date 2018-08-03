@@ -1,10 +1,10 @@
 {
   "name": "pagecatch",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Chrome extension library for saving current webpage state into one huge html file including all resources (e.g. iframes, images, fonts)",
   "main": "index.js",
   "scripts": {
-    "build-extension": "./node_modules/.bin/gulp build-extensions",
+    "build-extensions": "./node_modules/.bin/gulp build-extensions",
     "build-lib": "./node_modules/.bin/gulp build-page-catch-min"
   },
   "repository": {
