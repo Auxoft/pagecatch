@@ -391,7 +391,7 @@
 	})(Error);
 	
 	getSource = function() {
-	  var createSelector, getAttribute, getCssRulesForTagStyle, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj, passOnTree, stylesheetsArray;
+	  var createSelector, getAttribute, getCssRulesForTagStyle, getDoctype, getElementPath, getFramePath, getUrlMas, linksObj, passOnTree, ref, ref1, ref2, ref3, stylesheetsArray;
 	  linksObj = {};
 	  stylesheetsArray = [];
 	  createSelector = function(obj) {
@@ -458,15 +458,17 @@
 	    return results;
 	  };
 	  passOnTree = function(elem) {
-	    var child, children, j, len;
-	    children = elem.children;
-	    for (j = 0, len = children.length; j < len; j++) {
-	      child = children[j];
-	      passOnTree(child);
+	    var child, j, len, ref;
+	    if (elem != null) {
+	      ref = elem.children;
+	      for (j = 0, len = ref.length; j < len; j++) {
+	        child = ref[j];
+	        passOnTree(child);
+	      }
+	      getUrlMas(window.getComputedStyle(elem));
+	      getUrlMas(window.getComputedStyle(elem, ':after'));
+	      return getUrlMas(window.getComputedStyle(elem, ':before'));
 	    }
-	    getUrlMas(window.getComputedStyle(elem));
-	    getUrlMas(window.getComputedStyle(elem, ':after'));
-	    return getUrlMas(window.getComputedStyle(elem, ':before'));
 	  };
 	  passOnTree(document.body);
 	
@@ -584,7 +586,7 @@
 	    }
 	    return mas;
 	  };
-	  return [[document.URL, document.location.protocol], [document.head.innerHTML, document.body.outerHTML], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
+	  return [[document.URL, document.location.protocol], [(ref = (ref1 = document.head) != null ? ref1.innerHTML : void 0) != null ? ref : '', (ref2 = (ref3 = document.body) != null ? ref3.outerHTML : void 0) != null ? ref2 : ''], getAttribute(document.documentElement.attributes), getFramePath(), getElementPath(document.documentElement), getDoctype(document.doctype), linksObj, stylesheetsArray];
 	};
 	
 	deleteIframesFromHead = function(head) {
