@@ -73,12 +73,12 @@ getSource = () ->
         startIndex = styleObj[elem].indexOf('url(', endIndex + 1)
 
   passOnTree = (elem) ->
-    children = elem.children
-    for child in children
-      passOnTree(child)
-    getUrlMas(window.getComputedStyle(elem))
-    getUrlMas(window.getComputedStyle(elem, ':after'))
-    getUrlMas(window.getComputedStyle(elem, ':before'))
+    if elem?
+      for child in elem.children
+        passOnTree(child)
+      getUrlMas(window.getComputedStyle(elem))
+      getUrlMas(window.getComputedStyle(elem, ':after'))
+      getUrlMas(window.getComputedStyle(elem, ':before'))
 
   passOnTree(document.body)
 
@@ -177,7 +177,7 @@ getSource = () ->
   # iframe-selectors and iframe-path
   return [
     [document.URL, document.location.protocol],
-    [document.head.innerHTML, document.body.outerHTML],
+    [document.head?.innerHTML ? '', document.body?.outerHTML ? ''],
     getAttribute(document.documentElement.attributes),
     getFramePath(),
     getElementPath(document.documentElement),
